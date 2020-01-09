@@ -12,6 +12,8 @@ from wpilib.drive import DifferentialDrive
 class MyRobot(wpilib.IterativeRobot):
     def robotInit(self):
         """Robot initialization function"""
+		# Sets the speed
+		self.speed = 0.5
 
         # object that handles basic drive operations
         self.frontLeftMotor = wpilib.Talon(0)
@@ -37,7 +39,7 @@ class MyRobot(wpilib.IterativeRobot):
 
     def teleopPeriodic(self):
         """Runs the motors with tank steering"""
-        self.myRobot.tankDrive(self.leftStick.getY() * -1, self.rightStick.getY() * -1)
+        self.myRobot.tankDrive(self.leftStick.getY() * -1 * self.speed, self.rightStick.getY() * -1 * self.speed)
 
 
 if __name__ == "__main__":
