@@ -13,7 +13,7 @@ class MyRobot(wpilib.IterativeRobot):
     def robotInit(self):
         """Robot initialization function"""
 		# Sets the speed
-		self.speed = 0.5
+        self.speed = 0.5
 
         # object that handles basic drive operations
         self.frontLeftMotor = wpilib.Talon(0)
