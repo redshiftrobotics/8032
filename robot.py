@@ -16,10 +16,10 @@ class MyRobot(wpilib.IterativeRobot):
         self.speed = 0.5
 
         # object that handles basic drive operations
-        self.frontLeftMotor = wpilib.Talon(0)
-        self.rearLeftMotor = wpilib.Talon(1)
-        self.frontRightMotor = wpilib.Talon(2)
-        self.rearRightMotor = wpilib.Talon(3)
+        self.frontLeftMotor = wpilib.Talon(2)
+        self.rearLeftMotor = wpilib.Talon(0)
+        self.frontRightMotor = wpilib.Talon(3)
+        self.rearRightMotor = wpilib.Talon(1)
 
         self.left = wpilib.SpeedControllerGroup(self.frontLeftMotor, self.rearLeftMotor)
         self.right = wpilib.SpeedControllerGroup(
@@ -30,8 +30,7 @@ class MyRobot(wpilib.IterativeRobot):
         self.myRobot.setExpiration(0.1)
 
         # joysticks 1 & 2 on the driver station
-        self.leftStick = wpilib.Joystick(0)
-        self.rightStick = wpilib.Joystick(1)
+        self.joystick = wpilib.Joystick(0)
 
     def teleopInit(self):
         """Executed at the start of teleop mode"""
@@ -39,7 +38,7 @@ class MyRobot(wpilib.IterativeRobot):
 
     def teleopPeriodic(self):
         """Runs the motors with tank steering"""
-        self.myRobot.tankDrive(self.leftStick.getY() * -1 * self.speed, self.rightStick.getY() * -1 * self.speed)
+        self.myRobot.tankDrive(self.joystick.getRawAxis(1) * -1 * self.speed, self.joystick.getRawAxis(3) * -1 * self.speed)
 
 
 if __name__ == "__main__":
