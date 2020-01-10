@@ -15,7 +15,7 @@ class MyRobot(wpilib.IterativeRobot):
 		# Sets the speed
         self.speed = 0.3
 
-        # object that handles basic drive operations
+        # object that handles basic drive operations for the robot
         self.frontLeftMotor = wpilib.Talon(2)
         self.rearLeftMotor = wpilib.Talon(0)
         self.frontRightMotor = wpilib.Talon(3)
