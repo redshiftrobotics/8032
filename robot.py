@@ -8,12 +8,16 @@
 import wpilib
 from wpilib.drive import DifferentialDrive
 
+from networktables import NetworkTables
+
 #wassup dood reeee
 class MyRobot(wpilib.TimedRobot):
     def robotInit(self):
         """Robot initialization function"""
 		# Sets the speed
         self.speed = 0.5
+
+        self.sd = NetworkTables.getTable('SmartDashboard')
 
         # object that handles basic drive operations for the robot
         self.frontLeftMotor = wpilib.Talon(2)
@@ -44,6 +48,8 @@ class MyRobot(wpilib.TimedRobot):
 			)
 
         self.logger.info("Joystick value: %d", self.joystick.getRawAxis(1))
+
+        self.sd.putNumber('test', 3)
 
 
 if __name__ == "__main__":
