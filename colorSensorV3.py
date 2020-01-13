@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from wpilib.i2c import I2C
 from wpilib.driverstation import DriverStation
 import hal
