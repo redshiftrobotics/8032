@@ -4,9 +4,10 @@ from wpilib.drive import DifferentialDrive
 from networktables import NetworkTables
 from colorSensorV3 import ColorSensorV3
 from limelight import LimeLight
+from robotpy_ext.control.button_debouncer import ButtonDebouncer
 
-#wassup dood reeee
-class MyRobot(wpilib.TimedRobot):
+
+class Robot(wpilib.TimedRobot):
 
     def robotInit(self):
 		# Sets the speed
@@ -20,6 +21,9 @@ class MyRobot(wpilib.TimedRobot):
 
         # REV Color Sensor V3
         self.colorSensor = ColorSensorV3(0)
+
+        # The [a] button debounced
+        self.button = ButtonDebouncer(wpilib.Joystick(0), 0)
         
         # Motors for driving
         self.frontLeftMotor = wpilib.Talon(2)
@@ -41,6 +45,9 @@ class MyRobot(wpilib.TimedRobot):
     def teleopInit(self):
         self.myRobot.setSafetyEnabled(True)
 
+        # Tests setting the debounce period
+        self.button.set_debounce_period(0.8)
+
     def teleopPeriodic(self):
         # Drives with tank steering
         self.myRobot.tankDrive(
@@ -56,6 +63,9 @@ class MyRobot(wpilib.TimedRobot):
             self.joystick.getThrottle()
         ))
 
+        # Tests the button debouncer
+        self.sd.putNumber((int) self.button.get())
+        
         # Tests ColorSensor output
         self.sd.putNumber(self.colorSensor.getGreen())
 
