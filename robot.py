@@ -41,6 +41,21 @@ class Robot(wpilib.TimedRobot):
 
         # joysticks 1 & 2 on the driver station
         self.joystick = wpilib.Joystick(0)
+        
+        # Create a simple timer (docs: https://robotpy.readthedocs.io/projects/wpilib/en/latest/wpilib/Timer.html#wpilib.timer.Timer.get)
+        self.timer = wpilib.Timer()
+        
+    def autonomousInit(self):
+        """Called only at the beginning of autonomous mode."""
+        self.timer.reset()
+        self.timer.start()
+
+    def autonomousPeriodic(self):
+        """Called every 20ms in autonomous mode."""
+        
+        # Drive forward for two seconds.
+        if self.timer.get() < 2:
+          self.myRobot.tankDrive(1, 1)
 
     def teleopInit(self):
         self.myRobot.setSafetyEnabled(True)
