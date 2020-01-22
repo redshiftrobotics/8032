@@ -2,25 +2,25 @@
 import wpilib
 from wpilib.drive import DifferentialDrive
 from networktables import NetworkTables
-from colorSensorV3 import ColorSensorV3
-from limelight import LimeLight
 from robotpy_ext.control.button_debouncer import ButtonDebouncer
 
 
 class Robot(wpilib.TimedRobot):
+    def threshhold(self, value, limit):
+         if (abs(value) < limit):
+             return 0
+         else:
+             return round(value, 2)
 
     def robotInit(self):
 		# Sets the speed
         self.speed = 0.5
+        
+        self.yAxis = 0
+        self.tAxis = 0
 
         # Smart Dashboard
         self.sd = NetworkTables.getTable('SmartDashboard')
-
-        # LimeLight
-        self.limelight = LimeLight()
-
-        # REV Color Sensor V3
-        self.colorSensor = ColorSensorV3(0)
 
         # The [a] button debounced
         self.button = ButtonDebouncer(wpilib.Joystick(0), 0)
@@ -64,11 +64,11 @@ class Robot(wpilib.TimedRobot):
         self.button.set_debounce_period(0.8)
 
     def teleopPeriodic(self):
-        # Drives with tank steering
-        self.myRobot.tankDrive(
-			self.joystick.getRawAxis(1) * -1 * (self.speed + self.joystick.getRawAxis(5)/4 + self.joystick.getRawAxis(4)), 
-			self.joystick.getRawAxis(3) * (self.speed + self.joystick.getRawAxis(5)/4 + self.joystick.getRawAxis(4))
-        )
+        self.yAxis = self.threshhold(self.joystick.getRawAxis(2), 0.5)
+        self.tAxis = self.threshhold(-self.joystick.getRawAxis(1), 0.05)
+        
+        # Drives with arcade steering
+        self.myRobot.arcadeDrive(self.yAxis * self.speed, self.tAxis * self.speed)
         
         # Debug joysticks
         self.logger.info("X1: {} Y1: {} X2: {} Y2: {}".format(
@@ -78,14 +78,5 @@ class Robot(wpilib.TimedRobot):
             self.joystick.getThrottle()
         ))
 
-        # Tests the button debouncer
-        self.sd.putNumber((int) self.button.get())
-        
-        # Tests ColorSensor output
-        self.sd.putNumber(self.colorSensor.getGreen())
-
-        # Tests the LimeLight's latency
-        self.sd.putNumber(self.limelight.getLatency())
-
 if __name__ == "__main__":
-    wpilib.run(MyRobot)
+    wpilib.run(Robot)
