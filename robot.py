@@ -5,6 +5,8 @@ from networktables import NetworkTables
 from colorSensorV3 import ColorSensorV3
 from limelight import LimeLight
 from robotpy_ext.control.button_debouncer import ButtonDebouncer
+from state import State
+from state import DRIVE_FORWARD_TWO_SEC, FREEZE, TANK_DRIVE_NORMAL
 
 
 class Robot(wpilib.TimedRobot):
@@ -45,6 +47,16 @@ class Robot(wpilib.TimedRobot):
         # Create a simple timer (docs: https://robotpy.readthedocs.io/projects/wpilib/en/latest/wpilib/Timer.html#wpilib.timer.Timer.get)
         self.timer = wpilib.Timer()
         
+        self._state = State(self, FREEZE)
+        
+    @property
+    def state(self):
+        return self._state.state
+        
+    @state.setter
+    def state(self, new_state):
+        self._state.dispatch(new_state)
+        
     def autonomousInit(self):
         """Called only at the beginning of autonomous mode."""
         self.timer.reset()
@@ -52,10 +64,12 @@ class Robot(wpilib.TimedRobot):
 
     def autonomousPeriodic(self):
         """Called every 20ms in autonomous mode."""
-        
-        # Drive forward for two seconds.
-        if self.timer.get() < 2:
-          self.myRobot.tankDrive(1, 1)
+        self._state.update()
+
+        if self.state == DRIVE_FORWARD_TWO_SEC:
+            self.myRobot.tankDrive(0.3, 0.3)
+        elif self.state == FREEZE:
+            self.myRobot.tankDrive(0, 0)
 
     def teleopInit(self):
         self.myRobot.setSafetyEnabled(True)
@@ -63,13 +77,9 @@ class Robot(wpilib.TimedRobot):
         # Tests setting the debounce period
         self.button.set_debounce_period(0.8)
 
-    def teleopPeriodic(self):
-        # Drives with tank steering
-        self.myRobot.tankDrive(
-			self.joystick.getRawAxis(1) * -1 * (self.speed + self.joystick.getRawAxis(5)/4 + self.joystick.getRawAxis(4)), 
-			self.joystick.getRawAxis(3) * (self.speed + self.joystick.getRawAxis(5)/4 + self.joystick.getRawAxis(4))
-        )
-        
+    def teleopPeriodic(self):      
+        self._state.update()
+
         # Debug joysticks
         self.logger.info("X1: {} Y1: {} X2: {} Y2: {}".format(
             self.joystick.getX(), 
@@ -79,13 +89,22 @@ class Robot(wpilib.TimedRobot):
         ))
 
         # Tests the button debouncer
-        self.sd.putNumber((int) self.button.get())
+        self.sd.putNumber(self.button.get())
         
         # Tests ColorSensor output
         self.sd.putNumber(self.colorSensor.getGreen())
 
         # Tests the LimeLight's latency
         self.sd.putNumber(self.limelight.getLatency())
+        
+        if self.state == TANK_DRIVE_NORMAL:
+            # TODO: clean up the next line; it needs to be factored out.
+            self.myRobot.tankDrive(
+                self.joystick.getRawAxis(1) * -1 * (self.speed + self.joystick.getRawAxis(5)/4 + self.joystick.getRawAxis(4)),
+                self.joystick.getRawAxis(3) * (self.speed + self.joystick.getRawAxis(5)/4 + self.joystick.getRawAxis(4))
+            )
+        elif self.state == FREEZE:
+            self.myRobot.tankDrive(0, 0)
 
 if __name__ == "__main__":
-    wpilib.run(MyRobot)
+    wpilib.run(Robot)
