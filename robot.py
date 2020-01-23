@@ -3,6 +3,8 @@ import wpilib
 from wpilib.drive import DifferentialDrive
 from networktables import NetworkTables
 from robotpy_ext.control.button_debouncer import ButtonDebouncer
+from state import State
+from state import DRIVE_FORWARD_TWO_SEC, FREEZE, TANK_DRIVE_NORMAL
 
 
 class Robot(wpilib.TimedRobot):
@@ -45,6 +47,16 @@ class Robot(wpilib.TimedRobot):
         # Create a simple timer (docs: https://robotpy.readthedocs.io/projects/wpilib/en/latest/wpilib/Timer.html#wpilib.timer.Timer.get)
         self.timer = wpilib.Timer()
         
+        self._state = State(self, FREEZE)
+        
+    @property
+    def state(self):
+        return self._state.state
+        
+    @state.setter
+    def state(self, new_state):
+        self._state.dispatch(new_state)
+        
     def autonomousInit(self):
         """Called only at the beginning of autonomous mode."""
         self.timer.reset()
@@ -52,10 +64,12 @@ class Robot(wpilib.TimedRobot):
 
     def autonomousPeriodic(self):
         """Called every 20ms in autonomous mode."""
-        
-        # Drive forward for two seconds.
-        if self.timer.get() < 2:
-          self.myRobot.tankDrive(1, 1)
+        self._state.update()
+
+        if self.state == DRIVE_FORWARD_TWO_SEC:
+            self.myRobot.tankDrive(0.3, 0.3)
+        elif self.state == FREEZE:
+            self.myRobot.tankDrive(0, 0)
 
     def teleopInit(self):
         self.myRobot.setSafetyEnabled(True)
@@ -63,13 +77,12 @@ class Robot(wpilib.TimedRobot):
         # Tests setting the debounce period
         self.button.set_debounce_period(0.8)
 
-    def teleopPeriodic(self):
+    def teleopPeriodic(self):      
+        self._state.update()
+
         self.yAxis = self.threshhold(self.joystick.getRawAxis(2), 0.5)
         self.tAxis = self.threshhold(-self.joystick.getRawAxis(1), 0.05)
-        
-        # Drives with arcade steering
-        self.myRobot.arcadeDrive(self.yAxis * self.speed, self.tAxis * self.speed)
-        
+
         # Debug joysticks
         self.logger.info("X1: {} Y1: {} X2: {} Y2: {}".format(
             self.joystick.getX(), 
@@ -77,6 +90,13 @@ class Robot(wpilib.TimedRobot):
             self.joystick.getAxis(4), 
             self.joystick.getThrottle()
         ))
+
+        if self.state == TANK_DRIVE_NORMAL:
+            # Drives with arcade steering
+            self.myRobot.arcadeDrive(self.yAxis * self.speed,
+                                     self.tAxis * self.speed)
+        elif self.state == FREEZE:
+            self.myRobot.tankDrive(0, 0)
 
 if __name__ == "__main__":
     wpilib.run(Robot)
