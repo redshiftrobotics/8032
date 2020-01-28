@@ -1,4 +1,4 @@
-# 8032 Codebase
+# 8032 Codebase ![FRC Build](https://github.com/redshiftrobotics/8032/workflows/FRC%20Build/badge.svg?branch=master)
 
 ## Getting Started
 
