@@ -17,6 +17,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install wpilib==2019.2.3
         pip install pyfrc==2019.1.0
+        pip install pynetworktables==2019.0.2
     - name: Build
       run: |
         python robot.py test
