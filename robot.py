@@ -6,9 +6,6 @@ from robotpy_ext.control.button_debouncer import ButtonDebouncer
 from state import State
 from state import DRIVE_FORWARD_TWO_SEC, FREEZE, TANK_DRIVE_NORMAL
 
-# Broken code because julian asked for it
-asdfladflasdlfkasdf. !()()**&%$!SGLJKSB self. robot.  *&
-
 class Robot(wpilib.TimedRobot):
     def threshhold(self, value, limit):
          if (abs(value) < limit):
