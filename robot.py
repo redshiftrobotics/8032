@@ -6,8 +6,25 @@ from robotpy_ext.control.button_debouncer import ButtonDebouncer
 from state import State
 from state import DRIVE_FORWARD_TWO_SEC, FREEZE, TANK_DRIVE_NORMAL
 
+import ctre
+
+# ENCODER_COUNT = 2
 
 class Robot(wpilib.TimedRobot):
+    # ENCODER_PULSE_PER_REV = 1024
+    # WHEEL_DIAMETER = 0.5
+    # 
+    # talon_id_set = [
+    #     ('Front Left', 5, False),
+    #     ('Front Right', 1, False),
+    #     ('Back Left', 4, False),
+    #     ('Back Right', 15, False)
+    # ]
+    # 
+    # encoder_value_sets = []  # tuples of (home_pos, min_pos, max_pos)
+    # last_encoder_values = []
+    # talon_sweeping = []
+    
     def threshhold(self, value, limit):
          if (abs(value) < limit):
              return 0
@@ -49,6 +66,8 @@ class Robot(wpilib.TimedRobot):
         
         self._state = State(self, FREEZE)
         
+        self.talon = ctre.WPI_TalonSRX(0)
+
     @property
     def state(self):
         return self._state.state
@@ -72,6 +91,8 @@ class Robot(wpilib.TimedRobot):
             self.myRobot.tankDrive(0, 0)
 
     def teleopInit(self):
+        self.talon.set(1)
+        
         self.myRobot.setSafetyEnabled(True)
 
         # Tests setting the debounce period
@@ -79,6 +100,9 @@ class Robot(wpilib.TimedRobot):
 
     def teleopPeriodic(self):      
         self._state.update()
+        
+        self.sd.putNumber("Encoder", self.talon.get())
+        self.logger.info("Encoder: %d" % self.talon.get())
 
         self.yAxis = self.threshhold(self.joystick.getRawAxis(2), 0.5)
         self.tAxis = self.threshhold(-self.joystick.getRawAxis(1), 0.05)
@@ -91,12 +115,14 @@ class Robot(wpilib.TimedRobot):
             self.joystick.getThrottle()
         ))
 
-        if self.state == TANK_DRIVE_NORMAL:
-            # Drives with arcade steering
-            self.myRobot.arcadeDrive(self.yAxis * self.speed,
+        self.myRobot.arcadeDrive(self.yAxis * self.speed,
                                      self.tAxis * self.speed)
-        elif self.state == FREEZE:
-            self.myRobot.tankDrive(0, 0)
+
+        # if self.state == TANK_DRIVE_NORMAL:
+        #     # Drives with arcade steering
+        #     
+        # elif self.state == FREEZE:
+        #     self.myRobot.tankDrive(0, 0)
 
 if __name__ == "__main__":
     wpilib.run(Robot)
