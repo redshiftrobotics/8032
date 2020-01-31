@@ -6,7 +6,7 @@ from robotpy_ext.control.button_debouncer import ButtonDebouncer
 from state import State
 from state import DRIVE_FORWARD_TWO_SEC, FREEZE, TANK_DRIVE_NORMAL
 
-import ctre
+from ctre import WPI_TalonSRX, NeutralMode
 
 # ENCODER_COUNT = 2
 
@@ -32,8 +32,23 @@ class Robot(wpilib.TimedRobot):
              return round(value, 2)
 
     def robotInit(self):
+        #: Which PID slot to pull gains from. Starting 2018, you can choose from
+        #: 0,1,2 or 3. Only the first two (0,1) are visible in web-based
+        #: configuration.
+        self.kSlotIdx = 0
+
+        #: Talon SRX/ Victor SPX will supported multiple (cascaded) PID loops. For
+        #: now we just want the primary one.
+        self.kPIDLoopIdx = 0
+
+        #: set to zero to skip waiting for confirmation, set to nonzero to wait and
+        #: report to DS if action fails.
+        self.kTimeoutMs = 10
+        
 		# Sets the speed
-        self.speed = 0.5
+        self.speed = 0.4
+        self.ySpeed = 1
+        self.tSpeed = 0.75
         
         self.yAxis = 0
         self.tAxis = 0
@@ -41,24 +56,7 @@ class Robot(wpilib.TimedRobot):
         # Smart Dashboard
         self.sd = NetworkTables.getTable('SmartDashboard')
 
-        # The [a] button debounced
-        self.button = ButtonDebouncer(wpilib.Joystick(0), 0)
-        
-        # Motors for driving
-        self.frontLeftMotor = wpilib.Talon(2)
-        self.rearLeftMotor = wpilib.Talon(0)
-        self.frontRightMotor = wpilib.Talon(3)
-        self.rearRightMotor = wpilib.Talon(1)
-
-        # Motor controller groups
-        self.left = wpilib.SpeedControllerGroup(self.frontLeftMotor, self.rearLeftMotor)
-        self.right = wpilib.SpeedControllerGroup(self.frontRightMotor, self.rearRightMotor)
-
-        # Robot drivetrain
-        self.myRobot = DifferentialDrive(self.left, self.right)
-        self.myRobot.setExpiration(0.1)
-
-        # joysticks 1 & 2 on the driver station
+        # joysticks 1 on the driver station
         self.joystick = wpilib.Joystick(0)
         
         # Create a simple timer (docs: https://robotpy.readthedocs.io/projects/wpilib/en/latest/wpilib/Timer.html#wpilib.timer.Timer.get)
@@ -66,7 +64,42 @@ class Robot(wpilib.TimedRobot):
         
         self._state = State(self, FREEZE)
         
-        self.talon = ctre.WPI_TalonSRX(0)
+        self.frontLeftTalon = WPI_TalonSRX(2)
+        self.rearLeftTalon = WPI_TalonSRX(0)
+        self.frontRightTalon = WPI_TalonSRX(3)
+        self.rearRightTalon = WPI_TalonSRX(1)
+
+        self.frontLeftTalon.setNeutralMode(NeutralMode.Brake)
+        self.rearLeftTalon.setNeutralMode(NeutralMode.Brake)
+        self.frontRightTalon.setNeutralMode(NeutralMode.Brake)
+        self.rearRightTalon.setNeutralMode(NeutralMode.Brake)
+
+        self.frontLeftTalon.configSelectedFeedbackSensor(
+            WPI_TalonSRX.FeedbackDevice.CTRE_MagEncoder_Relative,
+            self.kPIDLoopIdx,
+            self.kTimeoutMs,
+        )
+
+        self.rearLeftTalon.configSelectedFeedbackSensor(
+            WPI_TalonSRX.FeedbackDevice.CTRE_MagEncoder_Relative,
+            self.kPIDLoopIdx,
+            self.kTimeoutMs,
+        )
+
+        self.frontRightTalon.configSelectedFeedbackSensor(
+            WPI_TalonSRX.FeedbackDevice.CTRE_MagEncoder_Relative,
+            self.kPIDLoopIdx,
+            self.kTimeoutMs,
+        )
+
+        self.rearRightTalon.configSelectedFeedbackSensor(
+            WPI_TalonSRX.FeedbackDevice.CTRE_MagEncoder_Relative,
+            self.kPIDLoopIdx,
+            self.kTimeoutMs,
+        )
+
+        self.leftEncoder = self.rearLeftTalon
+        self.rightEncoder = self.rearRightTalon
 
     @property
     def state(self):
@@ -85,44 +118,29 @@ class Robot(wpilib.TimedRobot):
         """Called every 20ms in autonomous mode."""
         self._state.update()
 
-        if self.state == DRIVE_FORWARD_TWO_SEC:
-            self.myRobot.tankDrive(0.3, 0.3)
-        elif self.state == FREEZE:
-            self.myRobot.tankDrive(0, 0)
+        #if self.state == DRIVE_FORWARD_TWO_SEC:
+        #    self.myRobot.tankDrive(0.3, 0.3)
+        #elif self.state == FREEZE:
+        #    self.myRobot.tankDrive(0, 0)
 
     def teleopInit(self):
-        self.talon.set(1)
-        
-        self.myRobot.setSafetyEnabled(True)
-
-        # Tests setting the debounce period
-        self.button.set_debounce_period(0.8)
+        pass
 
     def teleopPeriodic(self):      
         self._state.update()
+
+        self.speed = (-self.joystick.getRawAxis(3) + 1)/2
+
+        self.tAxis = self.threshhold(self.joystick.getRawAxis(2), 0.05) * self.tSpeed * self.speed
+        self.yAxis = self.threshhold(-self.joystick.getRawAxis(1), 0.05) * self.ySpeed * self.speed
         
-        self.sd.putNumber("Encoder", self.talon.get())
-        self.logger.info("Encoder: %d" % self.talon.get())
+        self.frontLeftTalon.set(WPI_TalonSRX.ControlMode.PercentOutput, self.yAxis+self.tAxis)
+        self.rearLeftTalon.set(WPI_TalonSRX.ControlMode.PercentOutput, self.yAxis+self.tAxis)
+        self.frontRightTalon.set(WPI_TalonSRX.ControlMode.PercentOutput, self.yAxis-self.tAxis)
+        self.rearRightTalon.set(WPI_TalonSRX.ControlMode.PercentOutput, self.yAxis-self.tAxis)
 
-        self.yAxis = self.threshhold(self.joystick.getRawAxis(2), 0.5)
-        self.tAxis = self.threshhold(-self.joystick.getRawAxis(1), 0.05)
-
-        # Debug joysticks
-        self.logger.info("X1: {} Y1: {} X2: {} Y2: {}".format(
-            self.joystick.getX(), 
-            self.joystick.getY(), 
-            self.joystick.getAxis(4), 
-            self.joystick.getThrottle()
-        ))
-
-        self.myRobot.arcadeDrive(self.yAxis * self.speed,
-                                     self.tAxis * self.speed)
-
-        # if self.state == TANK_DRIVE_NORMAL:
-        #     # Drives with arcade steering
-        #     
-        # elif self.state == FREEZE:
-        #     self.myRobot.tankDrive(0, 0)
+        self.sd.putNumber("Left Encoder", self.leftEncoder.getSelectedSensorPosition(self.kPIDLoopIdx))
+        self.sd.putNumber("Right Encoder", self.rightEncoder.getSelectedSensorPosition(self.kPIDLoopIdx))
 
 if __name__ == "__main__":
     wpilib.run(Robot)
