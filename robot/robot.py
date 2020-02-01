@@ -7,7 +7,7 @@ from robotpy_ext.control.button_debouncer import ButtonDebouncer
 from ctre import WPI_TalonSRX, ControlMode, NeutralMode, FeedbackDevice
 
 class Robot(wpilib.TimedRobot):
-    def threshhold(self, value, limit):
+    def threshold(self, value, limit):
          if (abs(value) < limit):
              return 0
          else:
@@ -93,8 +93,8 @@ class Robot(wpilib.TimedRobot):
         self.speed = (-self.joystick.getRawAxis(3) + 1)/2
 
         # Get turn and movement speeds
-        self.tAxis = self.threshhold(self.joystick.getRawAxis(2), 0.05) * self.tSpeed * self.speed
-        self.yAxis = self.threshhold(-self.joystick.getRawAxis(1), 0.05) * self.ySpeed * self.speed
+        self.tAxis = self.threshold(self.joystick.getRawAxis(2), 0.05) * self.tSpeed * self.speed
+        self.yAxis = self.threshold(-self.joystick.getRawAxis(1), 0.05) * self.ySpeed * self.speed
         
         # Calculate right and left speeds
         leftSpeed = self.yAxis+self.tAxis
