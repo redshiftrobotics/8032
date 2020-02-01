@@ -20,5 +20,5 @@ jobs:
         pip install pynetworktables==2019.0.2
     - name: Build
       run: |
-        python robot.py add-tests
-        python robot.py test
+        python robot/robot.py add-tests
+        python robot/robot.py test
