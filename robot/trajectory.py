@@ -1,10 +1,6 @@
 import pathfinder as pf
-import navx
-from typing import Tuple, List
 import wpilib
 from wpilib import drive
-from components import drive
-from magicbot.magic_tunable import tunable
 from ctre.wpi_talonsrx import WPI_TalonSRX
 
 
@@ -12,23 +8,17 @@ class TrajectoryFollower:
     """
     Move along generated paths for autonomous
     """
-    WHEEL_DIAMETER = 0.5
-    KV = tunable(1.0269)
-    KA = tunable(0.0031)
-    ANGLE_CONSTANT = tunable(0.8)
+    WHEEL_DIAMETER = 0.1524
+    KV = 5.99
+    KA = 0.717
+    KS = 1.08
 
-    drive: drive.Drive
-    navx: navx.AHRS
-    l_encoder: wpilib.Encoder
-    r_encoder: wpilib.Encoder
-    generated_trajectories: dict
-
-    def on_enable(self):
-        """
-        Setup encoder follower objects.
-        """
+    def __init(self, l_encoder, r_encoder):
         self._current_trajectory = None
         self.last_difference = 0
+
+        self.l_enocder = l_encoder
+        self.r_encoder = r_encoder
 
         self.left_follower = pf.followers.EncoderFollower(None)
         self.right_follower = pf.followers.EncoderFollower(None)
@@ -36,28 +26,32 @@ class TrajectoryFollower:
         self.left_follower.configurePIDVA(1.0, 0, 0, self.KV, self.KA)
         self.right_follower.configurePIDVA(1.0, 0, 0, self.KV, self.KA)
 
-        self._cofigure_encoders()
+        self.cofigure_encoders()
 
     def follow_trajectory(self, trajectory_name: str):
         """
         Follow a specified trajectory.
         :param trajectory_name: The name of the trajectory to follow.
         """
+        
         print('Following Trajectory:', trajectory_name)
         self._current_trajectory = trajectory_name
         self.left_follower.setTrajectory(self.generated_trajectories[trajectory_name][0])
         self.right_follower.setTrajectory(self.generated_trajectories[trajectory_name][1])
 
-        self._cofigure_encoders()
+        self.cofigure_encoders()
 
-    def _cofigure_encoders(self):
+    def cofigure_encoders(self):
         """
         Configure the encoders for following a trajectory.
         """
-        self.l_encoder.reset()
-        self.r_encoder.reset()
-        self.left_follower.configureEncoder(self.l_encoder.get(), 1024, self.WHEEL_DIAMETER)
-        self.right_follower.configureEncoder(self.r_encoder.get(), 1024, self.WHEEL_DIAMETER)
+        # Resets Encoders
+        self.l_encoder.setSelectedSensorPosition(0, 0, 10)
+        self.r_encoder.setSelectedSensorPosition(0, 0, 10)
+
+        # Configures them
+        self.left_follower.configureEncoder(self.l_encoder.getSelectedSensorPosition(0), 4096, self.WHEEL_DIAMETER)
+        self.right_follower.configureEncoder(self.r_encoder.getSelectedSensorPosition(0), 4096, self.WHEEL_DIAMETER)
 
     def is_following(self, trajectory_name):
         """
@@ -66,10 +60,9 @@ class TrajectoryFollower:
         """
         return self._current_trajectory is not None and self._current_trajectory == trajectory_name
 
-    def execute(self):
+    def run(self):
         """
         Calculate the movement values and move the robot.
-        """
         """
         if (self.left_follower.trajectory is None or self.right_follower.trajectory is None) or \
            (self.left_follower.isFinished() and self.right_follower.isFinished()):
@@ -100,5 +93,4 @@ class TrajectoryFollower:
         print('Drive:', left, right)
         print('Encoders:', self.l_encoder.get(), self.r_encoder.get())
 
-        self.drive.move_tank(left, right)
-    """
+        return left, right
