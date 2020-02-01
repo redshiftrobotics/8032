@@ -148,12 +148,12 @@ class Robot(wpilib.TimedRobot):
         
 
                 # shows the image
-                cv2.imshow('a', img)
-                k = cv2.waitKey(125)
-                if k == 27:
-                    break
+            cv2.imshow('a', img)
+            k = cv2.waitKey(125)
+            if k == 27:
+                break
 
-            cv2.destroyWindow("preview")
+        cv2.destroyWindow("preview")
 
 
     def teleopInit(self):
