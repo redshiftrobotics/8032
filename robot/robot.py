@@ -80,80 +80,80 @@ class Robot(wpilib.TimedRobot):
             cv2.waitKey(0)
             cv2.destroyAllWindows()
 
-        def autonomousPeriodic(self):
+    def autonomousPeriodic(self):
+    
+        self._state.update()
+
+        if self.state == DRIVE_FORWARD_TWO_SEC:
+            self.myRobot.tankDrive(0.3, 0.3)
+        elif self.state == FREEZE:
+            self.myRobot.tankDrive(0, 0)
+
+        if self.vs.isOpened():
+            ret, img = self.vs.read()
+        else:
+            ret = False
+
+        while ret:
+            # reads and displays each frame
+            ret, img = self.vs.read()
+
+            # converts to hsv
+            hsv = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
+
+            # creates yellow color boundaries
+            lower_yellow = np.array([20,75,50])
+            upper_yellow = np.array([40,255,255])
+
+            # creates mask to isolate the ball within the image
+            mask = cv2.inRange(hsv, lower_yellow, upper_yellow)
+
+            # erodes and dilates pixels to get rid of small spots
+            mask = cv2.erode(mask,None,iterations = 10)
+            mask = cv2.dilate(mask,None,iterations = 10)
+
+            # gets the contours
+            contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+            # converts mask image to rgb
+            mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
+
+            # draws the contours
+            # ctrs = cv2.drawContours(img, contours, -1, (255, 0, 255), 3)
+
+            # gets a contour
+            for ctr in contours:
+
+                # creates a circle that encloses the contour
+                (x,y), radius = cv2.minEnclosingCircle(ctr)
+                center = (int(x), int(y))
+                radius = int(radius)
+                circle = cv2.circle(img, center, radius, (255, 0, 255), 2)
+
+
+        # focal length dimensions
+                distance1 = 19 # inches, distance from camera
+                if radius:
+                    pixels1 = 208 # pixels, diameter of ball
+                else:
+                    radius = 1
+                    pixels1 = 0
+                width1 = 7 # inches, diameter of ball
+                focalLength1 = pixels1 * distance1 / width1 
+                
+                distanceFromCamera = getDistance(width1, focalLength1, radius*2)
+                distanceFromCamera = round(distanceFromCamera, 2)
+                cv2.putText(img, f"{distanceFromCamera} in", center, cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
         
-            self._state.update()
+        
 
-            if self.state == DRIVE_FORWARD_TWO_SEC:
-                self.myRobot.tankDrive(0.3, 0.3)
-            elif self.state == FREEZE:
-                self.myRobot.tankDrive(0, 0)
+                # shows the image
+                cv2.imshow('a', img)
+                k = cv2.waitKey(125)
+                if k == 27:
+                    break
 
-            if self.vs.isOpened():
-                ret, img = self.vs.read()
-            else:
-                ret = False
-
-            while ret:
-                # reads and displays each frame
-                ret, img = self.vs.read()
-
-                # converts to hsv
-                hsv = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
-
-                # creates yellow color boundaries
-                lower_yellow = np.array([20,75,50])
-                upper_yellow = np.array([40,255,255])
-
-                # creates mask to isolate the ball within the image
-                mask = cv2.inRange(hsv, lower_yellow, upper_yellow)
-
-                # erodes and dilates pixels to get rid of small spots
-                mask = cv2.erode(mask,None,iterations = 10)
-                mask = cv2.dilate(mask,None,iterations = 10)
-
-                # gets the contours
-                contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
-                # converts mask image to rgb
-                mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
-
-                # draws the contours
-                # ctrs = cv2.drawContours(img, contours, -1, (255, 0, 255), 3)
-
-                # gets a contour
-                for ctr in contours:
-
-                    # creates a circle that encloses the contour
-                    (x,y), radius = cv2.minEnclosingCircle(ctr)
-                    center = (int(x), int(y))
-                    radius = int(radius)
-                    circle = cv2.circle(img, center, radius, (255, 0, 255), 2)
-
-
-            # focal length dimensions
-                    distance1 = 19 # inches, distance from camera
-                    if radius:
-                        pixels1 = 208 # pixels, diameter of ball
-                    else:
-                        radius = 1
-                        pixels1 = 0
-                    width1 = 7 # inches, diameter of ball
-                    focalLength1 = pixels1 * distance1 / width1 
-                    
-                    distanceFromCamera = getDistance(width1, focalLength1, radius*2)
-                    distanceFromCamera = round(distanceFromCamera, 2)
-                    cv2.putText(img, f"{distanceFromCamera} in", center, cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
-            
-            
-
-                    # shows the image
-                    cv2.imshow('a', img)
-                    k = cv2.waitKey(125)
-                    if k == 27:
-                        break
-
-                cv2.destroyWindow("preview")
+            cv2.destroyWindow("preview")
 
 
     def teleopInit(self):
