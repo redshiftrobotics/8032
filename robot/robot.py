@@ -7,7 +7,7 @@ from state import State
 from state import DRIVE_FORWARD_TWO_SEC, FREEZE, TANK_DRIVE_NORMAL
 
 class Robot(wpilib.TimedRobot):
-    def threshhold(self, value, limit):
+    def threshold(self, value, limit):
          if (abs(value) < limit):
              return 0
          else:
@@ -79,8 +79,8 @@ class Robot(wpilib.TimedRobot):
     def teleopPeriodic(self):      
         self._state.update()
 
-        self.yAxis = self.threshhold(self.joystick.getRawAxis(2), 0.5)
-        self.tAxis = self.threshhold(-self.joystick.getRawAxis(1), 0.05)
+        self.yAxis = self.threshold(self.joystick.getRawAxis(2), 0.5)
+        self.tAxis = self.threshold(-self.joystick.getRawAxis(1), 0.05)
 
         # Debug joysticks
         self.logger.info("X1: {} Y1: {} X2: {} Y2: {}".format(
