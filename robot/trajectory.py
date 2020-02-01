@@ -1,7 +1,7 @@
 import pathfinder as pf
 import wpilib
 from wpilib import drive
-from ctre.wpi_talonsrx import WPI_TalonSRX
+from wpilib import ADXRS450_Gyro
 
 
 class TrajectoryFollower:
@@ -12,6 +12,29 @@ class TrajectoryFollower:
     KV = 5.99
     KA = 0.717
     KS = 1.08
+
+    generated_trajectories = {
+        "diagonal_higher": [
+            pf.Waypoint(0, 0, 0),  # Waypoints are relative to first, so start at 0, 0, 0
+            pf.Waypoint(15, 8, 0)
+        ],
+        "cargo_ship": [
+            pf.Waypoint(0, 0, 0),
+            pf.Waypoint(7.33, 0, 0)
+        ],
+        "left-side": [
+            pf.Waypoint(0, 0, 0),
+            pf.Waypoint(8.33, 6.25, 0)
+        ],
+        "diagonal": [
+            pf.Waypoint(0, 0, 0),  # Waypoints are relative to first, so start at 0, 0, 0
+            pf.Waypoint(15, 5, 0)
+        ],
+        "charge": [
+            pf.Waypoint(0, 0, 0),
+            pf.Waypoint(1.5, 0, 0)
+        ]
+    }
 
     def __init(self, l_encoder, r_encoder):
         self._current_trajectory = None
@@ -27,6 +50,8 @@ class TrajectoryFollower:
         self.right_follower.configurePIDVA(1.0, 0, 0, self.KV, self.KA)
 
         self.cofigure_encoders()
+
+        self.gyro = ADXRS450_Gyro
 
     def follow_trajectory(self, trajectory_name: str):
         """
@@ -73,7 +98,7 @@ class TrajectoryFollower:
         right = self.right_follower.calculate(self.r_encoder.get())
 
         gyro_heading = (
-            -self.navx.getAngle()
+            -self.gyro.getAngle()
         )  # Assuming the gyro is giving a value in degrees
         desired_heading = pf.r2d(
             self.left_follower.getHeading()
