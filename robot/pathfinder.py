@@ -9,3 +9,7 @@ from mathutil import r2d, d2r, bound_angle
 
 sys.path.insert(0, "pathfinder/fit/")
 import hermite
+
+SAMPLES_FAST = 1000
+SAMPLES_LOW = SAMPLES_FAST*10
+SAMPLES_HIGH = SAMPLES_LOW*10

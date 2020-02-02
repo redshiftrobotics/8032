@@ -13,6 +13,7 @@ class TrajectoryFollower:
     KV = 5.99
     KA = 0.717
     KS = 1.08
+    DT = 0.02
 
     trajectories = {
         "charge": [
@@ -46,7 +47,8 @@ class TrajectoryFollower:
         
         print('Following Trajectory:', trajectory_name)
         self._current_trajectory = trajectory_name
-        l_trajectory, r_trajectory = pf.modifiers.tank(self.trajectories[trajectory_name], self.DRIVE_WIDTH)
+        trajectory = pf.generator.generate_trajectory(self.trajectories[trajectory_name], pf.hermite.pf_fit_hermite_cubic, pf.SAMPLES_FAST, self.DT, self.KV, self.KA, 120)
+        l_trajectory, r_trajectory = pf.modifiers.tank(trajectory, self.DRIVE_WIDTH)
         self.left_follower.setTrajectory(l_trajectory)
         self.right_follower.setTrajectory(r_trajectory)
 
@@ -69,7 +71,7 @@ class TrajectoryFollower:
         Check whether a trajectory is being followed.
         :param trajectory_name: The name of the trajectory to check.
         """
-        return self._current_trajectory is not None and self._current_trajectory == trajectory_name
+        return ((not self.left_follower.isFinished()) and (not self.right_follower.isFinished())) and self._current_trajectory == trajectory_name
 
     def run(self):
         """

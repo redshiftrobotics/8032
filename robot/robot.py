@@ -86,14 +86,19 @@ class Robot(wpilib.TimedRobot):
     
     def autonomousPeriodic(self):
         """Called every 20ms in autonomous mode."""
-        while self.trajectory_follower.is_following():
+        if self.trajectory_follower.is_following("charge"):
             # Update Motors
             leftSpeed, rightSpeed = self.trajectory_follower.run()
             self.frontLeftTalon.set(ControlMode.PercentOutput, leftSpeed)
             self.rearLeftTalon.set(ControlMode.PercentOutput, leftSpeed)
             self.frontRightTalon.set(ControlMode.PercentOutput, rightSpeed)
             self.rearRightTalon.set(ControlMode.PercentOutput, rightSpeed)
-            
+        else:
+            self.frontLeftTalon.set(ControlMode.PercentOutput, 0)
+            self.rearLeftTalon.set(ControlMode.PercentOutput, 0)
+            self.frontRightTalon.set(ControlMode.PercentOutput, 0)
+            self.rearRightTalon.set(ControlMode.PercentOutput, 0)
+
 
     def teleopInit(self):
         pass
