@@ -1,4 +1,5 @@
 import pathfinder as pf
+
 import wpilib
 from wpilib import drive
 from wpilib import ADXRS450_Gyro
@@ -19,6 +20,10 @@ class TrajectoryFollower:
         "charge": [
             pf.Waypoint(0, 0, 0),
             pf.Waypoint(1.5, 0, 0)
+        ],
+        "turn": [
+            pf.Waypoint(0, 0, 0),
+            pf.Waypoint(1, 1, pf.d2r(90))
         ]
     }
 
@@ -32,8 +37,8 @@ class TrajectoryFollower:
         self.left_follower = pf.followers.EncoderFollower(None)
         self.right_follower = pf.followers.EncoderFollower(None)
 
-        self.left_follower.configurePIDVA(1.0, 0, 0, self.KV, self.KA)
-        self.right_follower.configurePIDVA(1.0, 0, 0, self.KV, self.KA)
+        self.left_follower.configurePIDVA(1.0, 0, 0, 1/self.KV, 0)
+        self.right_follower.configurePIDVA(1.0, 0, 0, 1/self.KV, 0)
 
         self.cofigure_encoders()
 
