@@ -9,38 +9,23 @@ class TrajectoryFollower:
     Move along generated paths for autonomous
     """
     WHEEL_DIAMETER = 0.1524
+    DRIVE_WIDTH = 1.0
     KV = 5.99
     KA = 0.717
     KS = 1.08
 
-    generated_trajectories = {
-        "diagonal_higher": [
-            pf.Waypoint(0, 0, 0),  # Waypoints are relative to first, so start at 0, 0, 0
-            pf.Waypoint(15, 8, 0)
-        ],
-        "cargo_ship": [
-            pf.Waypoint(0, 0, 0),
-            pf.Waypoint(7.33, 0, 0)
-        ],
-        "left-side": [
-            pf.Waypoint(0, 0, 0),
-            pf.Waypoint(8.33, 6.25, 0)
-        ],
-        "diagonal": [
-            pf.Waypoint(0, 0, 0),  # Waypoints are relative to first, so start at 0, 0, 0
-            pf.Waypoint(15, 5, 0)
-        ],
+    trajectories = {
         "charge": [
             pf.Waypoint(0, 0, 0),
             pf.Waypoint(1.5, 0, 0)
         ]
     }
 
-    def __init(self, l_encoder, r_encoder):
+    def __init__(self, l_encoder, r_encoder):
         self._current_trajectory = None
         self.last_difference = 0
 
-        self.l_enocder = l_encoder
+        self.l_encoder = l_encoder
         self.r_encoder = r_encoder
 
         self.left_follower = pf.followers.EncoderFollower(None)
@@ -51,7 +36,7 @@ class TrajectoryFollower:
 
         self.cofigure_encoders()
 
-        self.gyro = ADXRS450_Gyro
+        self.gyro = ADXRS450_Gyro()
 
     def follow_trajectory(self, trajectory_name: str):
         """
@@ -61,8 +46,9 @@ class TrajectoryFollower:
         
         print('Following Trajectory:', trajectory_name)
         self._current_trajectory = trajectory_name
-        self.left_follower.setTrajectory(self.generated_trajectories[trajectory_name][0])
-        self.right_follower.setTrajectory(self.generated_trajectories[trajectory_name][1])
+        l_trajectory, r_trajectory = pf.modifiers.tank(self.trajectories[trajectory_name], self.DRIVE_WIDTH)
+        self.left_follower.setTrajectory(l_trajectory)
+        self.right_follower.setTrajectory(r_trajectory)
 
         self.cofigure_encoders()
 
@@ -105,10 +91,8 @@ class TrajectoryFollower:
         )  # Should also be in degrees
 
         # This is a poor man's P controller
-        angle_difference = pf.boundHalfDegrees(desired_heading - gyro_heading)
-        # turn = (1.1 * (-1.0 / 80.0) * angle_difference) + (0.05 * (angle_difference - self.last_difference))
-        turn = self.ANGLE_CONSTANT * (-1.0 / 80.0) * angle_difference
-        # turn = 0
+        angle_difference = pf.bound_angle(desired_heading - gyro_heading)
+        turn = self.KS * (-1.0 / 80.0) * angle_difference
 
         self.last_difference = angle_difference
 

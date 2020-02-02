@@ -5,7 +5,7 @@ from networktables import NetworkTables
 from robotpy_ext.control.button_debouncer import ButtonDebouncer
 from ctre import WPI_TalonSRX, ControlMode, NeutralMode, FeedbackDevice
 
-from trajectory import TrajectoryFollower
+from follow_trajectory import TrajectoryFollower
 
 class Robot(wpilib.TimedRobot):
     def threshhold(self, value, limit):
@@ -83,7 +83,7 @@ class Robot(wpilib.TimedRobot):
     def autonomousInit(self):
         """Called only at the beginning of autonomous mode."""
         self.trajectory_follower.follow_trajectory("charge")
-
+    
     def autonomousPeriodic(self):
         """Called every 20ms in autonomous mode."""
         while self.trajectory_follower.is_following():
