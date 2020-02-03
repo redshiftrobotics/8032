@@ -3,7 +3,6 @@ import wpilib
 from wpilib.drive import DifferentialDrive
 from networktables import NetworkTables
 from robotpy_ext.control.button_debouncer import ButtonDebouncer
-
 from ctre import WPI_TalonSRX, ControlMode, NeutralMode, FeedbackDevice
 
 class Robot(wpilib.TimedRobot):
@@ -23,14 +22,13 @@ class Robot(wpilib.TimedRobot):
         self.ySpeed = 1
         self.tSpeed = 0.75
         
-        # Stores turn and movement axis
-        self.yAxis = 0
-        self.tAxis = 0
-
         # Smart Dashboard
         self.sd = NetworkTables.getTable('SmartDashboard')
-
+        
         # joysticks 1 on the driver station
+        self.button = ButtonDebouncer(wpilib.Joystick(0), 0)
+
+        # joysticks 1 & 2 on the driver station
         self.joystick = wpilib.Joystick(0)
         
         # Create a simple timer (docs: https://robotpy.readthedocs.io/projects/wpilib/en/latest/wpilib/Timer.html#wpilib.timer.Timer.get)
@@ -109,6 +107,6 @@ class Robot(wpilib.TimedRobot):
         # Update SmartDashboard
         self.sd.putNumber("Left Encoder", self.leftEncoder.getSelectedSensorPosition(self.kPIDLoopIdx))
         self.sd.putNumber("Right Encoder", self.rightEncoder.getSelectedSensorPosition(self.kPIDLoopIdx))
-
+    
 if __name__ == "__main__":
     wpilib.run(Robot)
