@@ -33,6 +33,9 @@ class Robot(wpilib.TimedRobot):
         
         # Create a simple timer (docs: https://robotpy.readthedocs.io/projects/wpilib/en/latest/wpilib/Timer.html#wpilib.timer.Timer.get)
         self.timer = wpilib.Timer()
+
+        # TODO: Fix module number
+        self.compressor = wpilib.Compressor(0)
         
         # Talon CAN devices
         self.frontLeftTalon = WPI_TalonSRX(2)
