@@ -35,7 +35,7 @@ class Robot(wpilib.TimedRobot):
         self.timer = wpilib.Timer()
 
         # TODO: Fix module number
-        self.compressor = wpilib.Compressor(0)
+        self.compressor = wpilib.Compressor()
         
         # Talon CAN devices
         self.frontLeftTalon = WPI_TalonSRX(2)
@@ -87,6 +87,7 @@ class Robot(wpilib.TimedRobot):
         pass
 
     def teleopInit(self):
+        self.compressor.start()
         pass
 
     def teleopPeriodic(self):
