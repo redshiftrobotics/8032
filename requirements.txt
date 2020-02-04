@@ -1,0 +1,4 @@
+wpilib>=2020.1.2.1
+pyfrc>=2020.0.1
+robotpy-ctre>=2020.1.0
+pynetworktables>=2020.0.1
