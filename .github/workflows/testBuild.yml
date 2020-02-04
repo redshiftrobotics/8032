@@ -1,4 +1,4 @@
-me: FRC Build
+name: FRC Build
 
 on: [push, pull_request]
 
