@@ -1,5 +1,5 @@
 import math
-from mathutil import bound_radians
+from pathfinder.mathutil import bound_radians
 
 class Coord:
     def __init__(self, x, y):

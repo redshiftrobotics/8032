@@ -1,8 +1,8 @@
 import math
 
-from spline import pf_spline_distance, pf_spline_progress_for_distance, pf_spline_coords, pf_spline_angle
-from trajectory import pf_trajectory_prepare, pf_trajectory_create
-from utils import Segment
+from pathfinder.spline import pf_spline_distance, pf_spline_progress_for_distance, pf_spline_coords, pf_spline_angle
+from pathfinder.trajectory import pf_trajectory_prepare, pf_trajectory_create
+from pathfinder.utils import Segment
 
 class TrajectoryConfig:
     def __init__(self, dt, max_v, max_a, max_j, src_v, src_theta, dest_pos, dest_v, dest_theta, sample_count):
