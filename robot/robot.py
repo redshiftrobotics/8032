@@ -7,6 +7,7 @@ from state import State
 from state import DRIVE_FORWARD_TWO_SEC, FREEZE, TANK_DRIVE_NORMAL
 import cv2
 import numpy as np
+from ctre import WPI_TalonSRX, ControlMode, NeutralMode, FeedbackDevice
 
 class Robot(wpilib.TimedRobot):
     def threshold(self, value, limit):
@@ -71,14 +72,14 @@ class Robot(wpilib.TimedRobot):
         self.timer.start()
 
         # distance between ball and camera
-        def getDistance(width, focalLength, pixels):
-            return width * focalLength / pixels
+    def getDistance(self, width, focalLength, pixels):
+        return width * focalLength / pixels
 
-        # creates one function that shows the image and closes after a key is pressed
-        def showImg(txt, image):
-            cv2.imshow(txt, image)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
+    # creates one function that shows the image and closes after a key is pressed
+    def showImg(self, txt, image):
+        cv2.imshow(txt, image)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
     def autonomousPeriodic(self):
     
@@ -141,7 +142,7 @@ class Robot(wpilib.TimedRobot):
                 width1 = 7 # inches, diameter of ball
                 focalLength1 = pixels1 * distance1 / width1 
                 
-                distanceFromCamera = getDistance(width1, focalLength1, radius*2)
+                distanceFromCamera = self.getDistance(width1, focalLength1, radius*2)
                 distanceFromCamera = round(distanceFromCamera, 2)
                 cv2.putText(img, f"{distanceFromCamera} in", center, cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
         
@@ -162,26 +163,27 @@ class Robot(wpilib.TimedRobot):
         # Tests setting the debounce period
         self.button.set_debounce_period(0.8)
 
-    def teleopPeriodic(self):      
-        self._state.update()
+    def teleopPeriodic(self):
+        # Get max speed
+        self.speed = (-self.joystick.getRawAxis(3) + 1)/2
 
-        self.yAxis = self.threshold(self.joystick.getRawAxis(2), 0.5)
-        self.tAxis = self.threshold(-self.joystick.getRawAxis(1), 0.05)
+        # Get turn and movement speeds
+        self.tAxis = self.threshold(self.joystick.getRawAxis(2), 0.05) * self.tSpeed * self.speed
+        self.yAxis = self.threshold(-self.joystick.getRawAxis(1), 0.05) * self.ySpeed * self.speed
+        
+        # Calculate right and left speeds
+        leftSpeed = self.yAxis+self.tAxis
+        rightSpeed = self.yAxis-self.tAxis
 
-        # Debug joysticks
-        self.logger.info("X1: {} Y1: {} X2: {} Y2: {}".format(
-            self.joystick.getX(), 
-            self.joystick.getY(), 
-            self.joystick.getAxis(4), 
-            self.joystick.getThrottle()
-        ))
+        # Update Motors
+        self.frontLeftTalon.set(ControlMode.PercentOutput, leftSpeed)
+        self.rearLeftTalon.set(ControlMode.PercentOutput, leftSpeed)
+        self.frontRightTalon.set(ControlMode.PercentOutput, rightSpeed)
+        self.rearRightTalon.set(ControlMode.PercentOutput, rightSpeed)
 
-        if self.state == TANK_DRIVE_NORMAL:
-            # Drives with arcade steering
-            self.myRobot.arcadeDrive(self.yAxis * self.speed,
-                                     self.tAxis * self.speed)
-        elif self.state == FREEZE:
-            self.myRobot.tankDrive(0, 0)
-
+        # Update SmartDashboard
+        self.sd.putNumber("Left Encoder", self.leftEncoder.getSelectedSensorPosition(self.kPIDLoopIdx))
+        self.sd.putNumber("Right Encoder", self.rightEncoder.getSelectedSensorPosition(self.kPIDLoopIdx))
+    
 if __name__ == "__main__":
     wpilib.run(Robot)

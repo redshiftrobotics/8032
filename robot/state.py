@@ -48,7 +48,6 @@ class State:
 		TODO: use protocol here
 		"""
 		assert parent.timer is not None
-		assert parent.Mode is not None
 		"""
 		It's really important that we have a weakref here. If the ref count
 		is incremented here, then we will create a circle reference and the 
@@ -74,7 +73,7 @@ class State:
 	"""
 	def update(self):
 		""" kTeleop = 3; for now, just drive strait in teleop. """
-		if self.parent().Mode == 3:
+		if 3 == 3:
 			self.dispatch(TANK_DRIVE_NORMAL)
 			return
 		
