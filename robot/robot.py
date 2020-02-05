@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
+
 import wpilib
 from wpilib.drive import DifferentialDrive
 from networktables import NetworkTables
 from robotpy_ext.control.button_debouncer import ButtonDebouncer
 from ctre import WPI_TalonSRX, ControlMode, NeutralMode, FeedbackDevice
+
+from rev.color import ColorSensorV3
 
 class Robot(wpilib.TimedRobot):
     def threshold(self, value, limit):
@@ -24,6 +27,8 @@ class Robot(wpilib.TimedRobot):
         
         # Smart Dashboard
         self.sd = NetworkTables.getTable('SmartDashboard')
+
+        self.m_colorSensor = ColorSensorV3(wpilib.I2C.Port.kOnboard)
         
         # joysticks 1 on the driver station
         self.button = ButtonDebouncer(wpilib.Joystick(0), 0)
@@ -107,6 +112,9 @@ class Robot(wpilib.TimedRobot):
         # Update SmartDashboard
         self.sd.putNumber("Left Encoder", self.leftEncoder.getSelectedSensorPosition(self.kPIDLoopIdx))
         self.sd.putNumber("Right Encoder", self.rightEncoder.getSelectedSensorPosition(self.kPIDLoopIdx))
+
+        # Color Sensor?
+        self.sd.putNumber("Color Sensor Data: ", self.m_colorSensor.getColor())
     
 if __name__ == "__main__":
     wpilib.run(Robot)
