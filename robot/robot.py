@@ -145,11 +145,12 @@ class Robot(wpilib.TimedRobot):
                 distanceFromCamera = self.getDistance(width1, focalLength1, radius*2)
                 distanceFromCamera = round(distanceFromCamera, 2)
                 cv2.putText(img, f"{distanceFromCamera} in", center, cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
+                self.logger.info(f"Distance from ball: {distanceFromCamera}")
         
         
 
                 # shows the image
-            cv2.imshow('a', img)
+            # cv2.imshow('a', img)
             k = cv2.waitKey(125)
             if k == 27:
                 break
