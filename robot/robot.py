@@ -82,13 +82,17 @@ class Robot(wpilib.TimedRobot):
 
     def autonomousInit(self):
         """Called only at the beginning of autonomous mode."""
-        self.trajectory_follower.follow_trajectory("turn")
+        self.trajectory_follower.follow_trajectory("charge")
     
     def autonomousPeriodic(self):
         """Called every 20ms in autonomous mode."""
-        if self.trajectory_follower.is_following("turn"):
+        if self.trajectory_follower.is_following("charge"):
             # Update Motors
             leftSpeed, rightSpeed = self.trajectory_follower.run()
+
+            self.sd.putNumber("Left Speed", leftSpeed)
+            self.sd.putNumber("Right Speed", rightSpeed)
+
             self.frontLeftTalon.set(ControlMode.PercentOutput, leftSpeed)
             self.rearLeftTalon.set(ControlMode.PercentOutput, leftSpeed)
             self.frontRightTalon.set(ControlMode.PercentOutput, rightSpeed)

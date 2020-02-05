@@ -87,8 +87,8 @@ class TrajectoryFollower:
             self._current_trajectory = None
             return
 
-        left = self.left_follower.calculate(self.l_encoder.get())
-        right = self.right_follower.calculate(self.r_encoder.get())
+        left = self.left_follower.calculate(self.l_encoder.getSelectedSensorPosition(0))
+        right = self.right_follower.calculate(self.r_encoder.getSelectedSensorPosition(0))
 
         gyro_heading = (
             -self.gyro.getAngle()
@@ -107,6 +107,6 @@ class TrajectoryFollower:
         right -= turn
 
         print('Drive:', left, right)
-        print('Encoders:', self.l_encoder.get(), self.r_encoder.get())
+        print('Encoders:', self.l_encoder.getSelectedSensorPosition(0), self.r_encoder.getSelectedSensorPosition(0))
 
         return left, right
