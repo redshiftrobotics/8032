@@ -4,8 +4,6 @@ from wpilib.drive import DifferentialDrive
 from networktables import NetworkTables
 from robotpy_ext.control.button_debouncer import ButtonDebouncer
 from ctre import WPI_TalonSRX, ControlMode, NeutralMode, FeedbackDevice
-from intake import Intake
-
 
 class Robot(wpilib.TimedRobot):
     def threshold(self, value, limit):
@@ -23,7 +21,6 @@ class Robot(wpilib.TimedRobot):
         self.speed = 0.4
         self.ySpeed = 1
         self.tSpeed = 0.75
-        self.intakeSpeed = 1
         
         # Smart Dashboard
         self.sd = NetworkTables.getTable('SmartDashboard')
@@ -45,10 +42,6 @@ class Robot(wpilib.TimedRobot):
         self.rearLeftTalon = WPI_TalonSRX(0)
         self.frontRightTalon = WPI_TalonSRX(3)
         self.rearRightTalon = WPI_TalonSRX(1)
-
-        # Intake Device
-        self.mainIntake = Intake(0,0,0,0,0,0,0)
-        self.intakeButton = 1
 
         # Enable auto breaking
         self.frontLeftTalon.setNeutralMode(NeutralMode.Brake)
@@ -101,16 +94,6 @@ class Robot(wpilib.TimedRobot):
         # Get max speed
         self.speed = (-self.joystick.getRawAxis(3) + 1)/2
 
-        
-        # Intake Speed 
-        self.mainIntake.speed(self.intakeSpeed)
-
-        # Intake Control
-        if (self.joystick.getRawButtonPressed(self.intakeButton)):
-            self.mainIntake.extend()
-        else:
-            self.mainIntake.retract()
-
         # Get turn and movement speeds
         self.tAxis = self.threshold(self.joystick.getRawAxis(2), 0.05) * self.tSpeed * self.speed
         self.yAxis = self.threshold(-self.joystick.getRawAxis(1), 0.05) * self.ySpeed * self.speed
@@ -128,7 +111,6 @@ class Robot(wpilib.TimedRobot):
         # Update SmartDashboard
         self.sd.putNumber("Left Encoder", self.leftEncoder.getSelectedSensorPosition(self.kPIDLoopIdx))
         self.sd.putNumber("Right Encoder", self.rightEncoder.getSelectedSensorPosition(self.kPIDLoopIdx))
-    
     
 if __name__ == "__main__":
     wpilib.run(Robot)
