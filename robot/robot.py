@@ -91,6 +91,10 @@ class Robot(wpilib.TimedRobot):
         # Setup Gyro
         self.gyro = ADXRS450_Gyro()
 
+        # Setup Accelerometer
+        self.accel = wpilib.BuiltInAccelerometer()
+        self.vel = 0.0
+
     def autonomousInit(self):
         """Called only at the beginning of autonomous mode."""
         # Reset Encoders
@@ -171,9 +175,14 @@ class Robot(wpilib.TimedRobot):
         # Reset Gyro
         self.gyro.reset()
 
+        self.vel = 0.0
+
     def teleopPeriodic(self):
         # Get max speed
         self.speed = (-self.joystick.getRawAxis(3) + 1)/2
+
+        # Get velocity
+        self.vel += math.sqrt(self.threshhold(self.accel.getX(), 0.02)**2 + self.threshhold(self.accel.getY(), 0.05)**2)
 
         # Get turn and movement speeds
         self.tAxis = self.threshhold(self.joystick.getRawAxis(2), 0.05) * self.tSpeed * self.speed
@@ -193,6 +202,9 @@ class Robot(wpilib.TimedRobot):
         self.sd.putNumber("Left Encoder", self.leftEncoder.getSelectedSensorPosition(self.kPIDLoopIdx))
         self.sd.putNumber("Right Encoder", self.rightEncoder.getSelectedSensorPosition(self.kPIDLoopIdx))
         self.sd.putNumber("Robot Heading", self.gyro.getAngle())
+        self.sd.putNumber("Robot Speed", self.vel/10)
+        self.sd.putNumber("Accel X", self.accel.getX())
+        self.sd.putNumber("Accel Y", self.accel.getY())
 
 if __name__ == "__main__":
     wpilib.run(Robot)

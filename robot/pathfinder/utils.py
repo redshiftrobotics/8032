@@ -15,8 +15,8 @@ class Segment:
         self.jerk = jerk
         self.heading = heading
 
-def print_object(obj):
+def return_object(obj):
     attrs = vars(obj)
-    print(', '.join("%s: %s" % item for item in attrs.items()))
+    return ', '.join("%s: %s" % item for item in attrs.items())
 
 SWERVE_DEFAULT = 0

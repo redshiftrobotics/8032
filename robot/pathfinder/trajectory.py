@@ -1,7 +1,7 @@
 import math
 import copy
 
-from pathfinder.utils import Segment, print_object
+from pathfinder.utils import Segment
 
 class TrajectoryInfo:
     def __init__(self, filter1, filter2, length, dt, u, v, impulse):
