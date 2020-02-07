@@ -1,0 +1,2 @@
+Requirement already satisfied: opencv-python in c:\users\saas_user\appdata\local\programs\python\python36\lib\site-packages (4.2.0.32)
+Requirement already satisfied: numpy>=1.11.3 in c:\users\saas_user\appdata\local\programs\python\python36\lib\site-packages (from opencv-python) (1.18.1)
