@@ -9,8 +9,8 @@ class TrajectoryFollower:
     """
     Move along generated paths for autonomous
     """
-    WHEEL_DIAMETER = 0.1524
-    DRIVE_WIDTH = 1.0
+    WHEEL_DIAMETER = 0.1524 # meters (6 inches)
+    DRIVE_WIDTH = 0.584 # meters (23 inches)
     KV = 5.99
     KA = 0.717
     KS = 1.08
@@ -19,7 +19,7 @@ class TrajectoryFollower:
     trajectories = {
         "charge": [
             pf.Waypoint(0, 0, 0),
-            pf.Waypoint(1.5, 0, 0)
+            pf.Waypoint(0.7, 0, 0)
         ],
         "turn": [
             pf.Waypoint(0, 0, 0),

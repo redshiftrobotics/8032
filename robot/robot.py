@@ -1,13 +1,23 @@
 #!/usr/bin/env python3
 import wpilib
-from wpilib.drive import DifferentialDrive
+from wpilib import ADXRS450_Gyro
 from networktables import NetworkTables
+
 from robotpy_ext.control.button_debouncer import ButtonDebouncer
 from ctre import WPI_TalonSRX, ControlMode, NeutralMode, FeedbackDevice
-
-from follow_trajectory import TrajectoryFollower
+import pathfinder as pf
+import math
 
 class Robot(wpilib.TimedRobot):
+    WHEEL_CIRCUMFERENCE = 0.1524 * math.pi # meters (6 inches)
+    DRIVE_WIDTH = 0.305473061 # meters (23 inches)
+    ENCODER_COUNTS_PER_REV = 4096
+    KP = 0.021
+    KV = 5.99
+    KA = 0.717
+    KS = 1.08
+    DT = 0.02
+
     def threshhold(self, value, limit):
          if (abs(value) < limit):
              return 0
@@ -78,34 +88,88 @@ class Robot(wpilib.TimedRobot):
         self.leftEncoder = self.rearLeftTalon
         self.rightEncoder = self.rearRightTalon
 
-        self.trajectory_follower = TrajectoryFollower(self.leftEncoder, self.rightEncoder)
+        # Setup Gyro
+        self.gyro = ADXRS450_Gyro()
 
     def autonomousInit(self):
         """Called only at the beginning of autonomous mode."""
-        self.trajectory_follower.follow_trajectory("charge")
+        # Reset Encoders
+        self.leftEncoder.setSelectedSensorPosition(0, 0, 10)
+        self.rightEncoder.setSelectedSensorPosition(0, 0, 10)
+
+        # Reset Gyro
+        self.gyro.reset()
+
+        # Set up the trajectory
+        points = [pf.Waypoint(0,0,0),
+                  pf.Waypoint(10, 0, 0)]
+
+        trajectory = pf.generator.generate_trajectory(
+            points,
+            pf.hermite.pf_fit_hermite_cubic,
+            pf.SAMPLES_FAST, #pf.SAMPLES_HIGH,
+            dt=self.DT, #self.getPeriod(),
+            max_velocity=self.KV,
+            max_acceleration=self.KA,
+            max_jerk=120.0
+        )
+
+        # Wheelbase Width = 2 ft
+        left, right = pf.modifiers.tank(trajectory, self.DRIVE_WIDTH)
+
+        # Do something with the new Trajectories...
+        leftFollower = pf.followers.EncoderFollower(left, self.logger)
+        leftFollower.configureEncoder(
+            self.leftEncoder.getSelectedSensorPosition(self.kPIDLoopIdx), self.ENCODER_COUNTS_PER_REV, self.WHEEL_CIRCUMFERENCE
+        )
+        leftFollower.configurePIDVA(self.KP, 0.0, 0.0, 1 / self.KV, 0)
+
+        rightFollower = pf.followers.EncoderFollower(right, self.logger)
+        rightFollower.configureEncoder(
+            -self.rightEncoder.getSelectedSensorPosition(self.kPIDLoopIdx), self.ENCODER_COUNTS_PER_REV, self.WHEEL_CIRCUMFERENCE
+        )
+        rightFollower.configurePIDVA(self.KP, 0.0, 0.0, 1 / self.KV, 0)
+
+        self.leftFollower = leftFollower
+        self.rightFollower = rightFollower
     
     def autonomousPeriodic(self):
         """Called every 20ms in autonomous mode."""
-        if self.trajectory_follower.is_following("charge"):
-            # Update Motors
-            leftSpeed, rightSpeed = self.trajectory_follower.run()
+        leftSpeed = self.leftFollower.calculate(self.leftEncoder.getSelectedSensorPosition(self.kPIDLoopIdx))
+        rightSpeed = self.rightFollower.calculate(self.rightEncoder.getSelectedSensorPosition(self.kPIDLoopIdx))
 
-            self.sd.putNumber("Left Speed", leftSpeed)
-            self.sd.putNumber("Right Speed", rightSpeed)
+        gyro_heading = (
+            -self.gyro.getAngle()
+        )  # Assuming the gyro is giving a value in degrees
+        desired_heading = pf.r2d(
+            self.leftFollower.getHeading()
+        )  # Should also be in degrees
 
-            self.frontLeftTalon.set(ControlMode.PercentOutput, leftSpeed)
-            self.rearLeftTalon.set(ControlMode.PercentOutput, leftSpeed)
-            self.frontRightTalon.set(ControlMode.PercentOutput, rightSpeed)
-            self.rearRightTalon.set(ControlMode.PercentOutput, rightSpeed)
-        else:
-            self.frontLeftTalon.set(ControlMode.PercentOutput, 0)
-            self.rearLeftTalon.set(ControlMode.PercentOutput, 0)
-            self.frontRightTalon.set(ControlMode.PercentOutput, 0)
-            self.rearRightTalon.set(ControlMode.PercentOutput, 0)
+        # This is a poor man's P controller
+        angleDifference = pf.bound_angle(desired_heading - gyro_heading)
+        turn = self.KS * (-1.0 / 80.0) * angleDifference
+
+        leftSpeed = leftSpeed + turn
+        rightSpeed = rightSpeed - turn
+
+        print(leftSpeed, rightSpeed)
+        
+        self.sd.putNumber("Left Speed", leftSpeed)
+        self.sd.putNumber("Right Speed", rightSpeed)
+        self.sd.putNumber("Left Encoder", self.leftEncoder.getSelectedSensorPosition(self.kPIDLoopIdx))
+        self.sd.putNumber("Right Encoder", self.rightEncoder.getSelectedSensorPosition(self.kPIDLoopIdx))
+        self.sd.putNumber("Robot Heading", gyro_heading)
+        self.sd.putNumber("Target Heading", desired_heading)
+
+        self.frontLeftTalon.set(ControlMode.PercentOutput, leftSpeed)
+        self.rearLeftTalon.set(ControlMode.PercentOutput, leftSpeed)
+        self.frontRightTalon.set(ControlMode.PercentOutput, rightSpeed)
+        self.rearRightTalon.set(ControlMode.PercentOutput, rightSpeed)
 
 
     def teleopInit(self):
-        pass
+        # Reset Gyro
+        self.gyro.reset()
 
     def teleopPeriodic(self):
         # Get max speed
@@ -128,6 +192,7 @@ class Robot(wpilib.TimedRobot):
         # Update SmartDashboard
         self.sd.putNumber("Left Encoder", self.leftEncoder.getSelectedSensorPosition(self.kPIDLoopIdx))
         self.sd.putNumber("Right Encoder", self.rightEncoder.getSelectedSensorPosition(self.kPIDLoopIdx))
+        self.sd.putNumber("Robot Heading", self.gyro.getAngle())
 
 if __name__ == "__main__":
     wpilib.run(Robot)

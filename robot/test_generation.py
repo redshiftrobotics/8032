@@ -3,12 +3,16 @@ import math
 
 
 points = [
-    pf.Waypoint(-4, -1, math.radians(-45.0)),
-    pf.Waypoint(-2, -2, 0),
-    pf.Waypoint(0, 0, 0)
+    pf.Waypoint(0, 0, 0),
+    pf.Waypoint(100, 0, 0)
 ]
 
-trajectory = pf.generator.generate_trajectory(points, pf.hermite.pf_fit_hermite_cubic, 1000, 0.02, 15.0, 10.0, 60.0)
+points = [pf.Waypoint(0,0,0),
+        pf.Waypoint(10, 5, 0)]
+
+trajectory = pf.generator.generate_trajectory(points, pf.hermite.pf_fit_hermite_cubic, pf.SAMPLES_FAST, 0.02, 5.99, 0.717, 120.0)
+#for seg in trajectory:
+#    pf.utils.print_object(seg)
 
 individual_trajectories = pf.modifiers.tank(trajectory, 1.0)
 

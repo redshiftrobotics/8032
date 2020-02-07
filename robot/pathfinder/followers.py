@@ -13,9 +13,11 @@ class EncoderConfig:
 
 ## Modified from: https://github.com/robotpy/robotpy-pathfinder/blob/master/pathfinder/followers.py
 class EncoderFollower:
-    def __init__(self, trajectory):
+    def __init__(self, trajectory, logger):
         self.trajectory = trajectory
         self.cfg = EncoderConfig()
+        self.reset()
+        self.logger = logger
 
     def setTrajectory(self, trajectory):
         self.trajectory = trajectory
@@ -58,12 +60,14 @@ class EncoderFollower:
 
 def pathfinder_follow_encoder2(c, follower, s, trajectory_length, encoder_tick):
     distance_covered = (float(encoder_tick) - float(c.initial_position)) /  float(c.ticks_per_revolution)
-    distance_covered = distance_covered * c.wheel_circumference
+    distance_covered *= c.wheel_circumference
     
     if (follower.segment < trajectory_length):
         follower.finished = 0
         error = s.position - distance_covered
-        calculated_value = c.kp * error + c.kd * ((error - follower.last_error) / s.dt) + (c.kv * s.velocity + c.ka * s.acceleration)
+        feedback_value = (c.kp * error) + (c.kd * ((error - follower.last_error) / s.dt))
+        feedforward_value = ((c.kv * s.velocity) + (c.ka * s.acceleration))
+        calculated_value = feedback_value + feedforward_value
         
         follower.last_error = error
         follower.heading = s.heading
