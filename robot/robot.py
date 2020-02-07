@@ -22,21 +22,26 @@ class Robot(wpilib.TimedRobot):
         elif unit == 'in':
             return ticks/217.3
 
-    def calculateVelocity(self, encoder1, encoder2):
+    # def calculateVelocity(self, encoder1, encoder2):
         
-        self.previousAvg = self.currentAvg
-        self.currentAvg = (self.encoderCalculate(encoder1, 'in') + self.encoderCalculate(encoder2, 'in')) / 2
+    #     self.previousAvg = self.currentAvg
+    #     self.currentAvg = (self.encoderCalculate(encoder1, 'in') + self.encoderCalculate(encoder2, 'in')) / 2
 
-        distance = self.currentAvg - self.previousAvg
+    #     distance = self.currentAvg - self.previousAvg
 
-        # is meters per second
-        velocity = distance * 50
+    #     # is meters per second
+    #     velocity = distance * 50
 
-        return velocity 
+    #     return velocity 
+
+
+    def calculateVelocity(self, motor1, motor2, motor3, motor4):
+        velocity = (motor1.get() + motor2.get() + motor3.get() + motor4.get()) / 4
+        return velocity
 
     def calculateIntakeSpeed(self, velocity):
         if (velocity < 0):
-            return self.baseIntakeSpeed + -velocity
+            return self.baseIntakeSpeed + abs(velocity)
         else:
             return self.baseIntakeSpeed
 
@@ -126,7 +131,13 @@ class Robot(wpilib.TimedRobot):
 
     def teleopInit(self):
         self.compressor.start()
-        self.timer.start()
+        # self.timer.start()
+
+        self.frontLeftTalon.set(ControlMode.Speed)
+        self.frontRightTalon.set(ControlMode.Speed)
+        self.rearLeftTalon.set(ControlMode.Speed)
+        self.rearRightTalon.set(ControlMode.Speed)
+
         pass 
 
     def teleopPeriodic(self):
@@ -135,7 +146,7 @@ class Robot(wpilib.TimedRobot):
         self.speed = (-self.joystick.getRawAxis(3) + 1)/2
 
         # Intake Speed 
-        self.mainIntake.speed(self.calculateIntakeSpeed(self.calculateVelocity(self.leftEncoder, self.rightEncoder)))
+        self.mainIntake.speed(self.calculateIntakeSpeed(self.calculateVelocity(self.frontLeftTalon, self.frontRightTalon, self.rearLeftTalon, self.rearRightTalon)))
 
         # Intake Control
         if (self.joystick.getRawButtonPressed(self.intakeButton)):
