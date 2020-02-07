@@ -14,6 +14,33 @@ class Robot(wpilib.TimedRobot):
          else:
              return round(value, 2)
 
+    def encoderCalculate(self, encoder, unit):
+        ticks = encoder.getSelectedSensorPosition(self.kPIDLoopIdx)
+        ticks = float(ticks)
+        if unit == 'm':
+            return ticks/8554.72
+        elif unit == 'in':
+            return ticks/217.3
+
+    def calculateVelocity(self, encoder1, encoder2):
+        
+        self.previousAvg = self.currentAvg
+        self.currentAvg = (self.encoderCalculate(encoder1, 'in') + self.encoderCalculate(encoder2, 'in')) / 2
+
+        distance = self.currentAvg - self.previousAvg
+
+        # is meters per second
+        velocity = distance * 50
+
+        return velocity 
+
+    def calculateIntakeSpeed(self, velocity):
+        if (velocity < 0):
+            return self.baseIntakeSpeed + -velocity
+        else:
+            return self.baseIntakeSpeed
+
+
     def robotInit(self):
         self.kSlotIdx = 0
         self.kPIDLoopIdx = 0
@@ -23,7 +50,11 @@ class Robot(wpilib.TimedRobot):
         self.speed = 0.4
         self.ySpeed = 1
         self.tSpeed = 0.75
-        self.intakeSpeed = 1
+        self.baseIntakeSpeed = 5
+
+        self.previousAvg = 0
+        self.currentAvg = 0
+
         
         # Smart Dashboard
         self.sd = NetworkTables.getTable('SmartDashboard')
@@ -95,15 +126,16 @@ class Robot(wpilib.TimedRobot):
 
     def teleopInit(self):
         self.compressor.start()
-        pass
+        self.timer.start()
+        pass 
 
     def teleopPeriodic(self):
+        
         # Get max speed
         self.speed = (-self.joystick.getRawAxis(3) + 1)/2
 
-        
         # Intake Speed 
-        self.mainIntake.speed(self.intakeSpeed)
+        self.mainIntake.speed(self.calculateIntakeSpeed(self.calculateVelocity(self.leftEncoder, self.rightEncoder)))
 
         # Intake Control
         if (self.joystick.getRawButtonPressed(self.intakeButton)):
