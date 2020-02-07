@@ -192,6 +192,13 @@ class Robot(wpilib.TimedRobot):
         leftSpeed = self.yAxis+self.tAxis
         rightSpeed = self.yAxis-self.tAxis
 
+
+        # debouncering button and emergency braking
+        if self.joystick.getRawButton(1):
+            # print("brake")
+            leftSpeed = 0
+            rightSpeed = 0
+
         # Update Motors
         self.frontLeftTalon.set(ControlMode.PercentOutput, leftSpeed)
         self.rearLeftTalon.set(ControlMode.PercentOutput, leftSpeed)
