@@ -4,6 +4,7 @@ from wpilib.drive import DifferentialDrive
 from networktables import NetworkTables
 from robotpy_ext.control.button_debouncer import ButtonDebouncer
 from ctre import WPI_TalonSRX, ControlMode, NeutralMode, FeedbackDevice
+from joystick_drive import joystick_drive
 
 class Robot(wpilib.TimedRobot):
     def threshold(self, value, limit):
@@ -30,6 +31,7 @@ class Robot(wpilib.TimedRobot):
 
         # joysticks 1 & 2 on the driver station
         self.joystick = wpilib.Joystick(0)
+        self.joystick1 = wpilib.Joystick(1)
         
         # Create a simple timer (docs: https://robotpy.readthedocs.io/projects/wpilib/en/latest/wpilib/Timer.html#wpilib.timer.Timer.get)
         self.timer = wpilib.Timer()
@@ -84,19 +86,17 @@ class Robot(wpilib.TimedRobot):
         pass
 
     def teleopInit(self):
-        pass
+        self.joystick_drive = joystick_drive(self.joystick, self.speed, self.ySpeed, self.tSpeed)
 
     def teleopPeriodic(self):
-        # Get max speed
-        self.speed = (-self.joystick.getRawAxis(3) + 1)/2
+       
+        # Todo: two classes
+        # - joystickDrive class: deals with drive/port 0 input depending on controller type AND resolves different styles of axis control
+        #   - Ideally, these would return values directly to leftSpeed/rightSpeed as seen bellow
+        # - joystickOperator class: deal with operator/port 1 input depending on controller type
 
-        # Get turn and movement speeds
-        self.tAxis = self.threshold(self.joystick.getRawAxis(2), 0.05) * self.tSpeed * self.speed
-        self.yAxis = self.threshold(-self.joystick.getRawAxis(1), 0.05) * self.ySpeed * self.speed
-        
         # Calculate right and left speeds
-        leftSpeed = self.yAxis+self.tAxis
-        rightSpeed = self.yAxis-self.tAxis
+        leftSpeed, rightSpeed = self.joystick_drive.calculateSpeeds(self.joystick)
 
         # Update Motors
         self.frontLeftTalon.set(ControlMode.PercentOutput, leftSpeed)
@@ -107,6 +107,6 @@ class Robot(wpilib.TimedRobot):
         # Update SmartDashboard
         self.sd.putNumber("Left Encoder", self.leftEncoder.getSelectedSensorPosition(self.kPIDLoopIdx))
         self.sd.putNumber("Right Encoder", self.rightEncoder.getSelectedSensorPosition(self.kPIDLoopIdx))
-    
+
 if __name__ == "__main__":
     wpilib.run(Robot)
