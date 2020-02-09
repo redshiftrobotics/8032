@@ -12,9 +12,9 @@ class Robot(wpilib.TimedRobot):
     WHEEL_CIRCUMFERENCE = 0.1524 * math.pi # meters (6 inches)
     DRIVE_WIDTH = 0.305473061 # meters (23 inches)
     ENCODER_COUNTS_PER_REV = 4096
-    KP = 0.021
-    KV = 5.99
-    KA = 0.717
+    KP = 0.028
+    KV = 3.743381
+    KA = 0.717 #22.355086
     KS = 1.08
     DT = 0.02
 
@@ -33,6 +33,8 @@ class Robot(wpilib.TimedRobot):
         self.speed = 0.4
         self.ySpeed = 1
         self.tSpeed = 0.75
+
+        self.turnSlowdown = 0.8
         
         # Stores turn and movement axis
         self.yAxis = 0
@@ -84,16 +86,30 @@ class Robot(wpilib.TimedRobot):
             self.kTimeoutMs,
         )
 
+        pVal = 0.3
+        dVal = 0.6
+
+        self.frontLeftTalon.config_kP(0, pVal, self.kTimeoutMs)
+        self.frontRightTalon.config_kP(0, pVal, self.kTimeoutMs)
+        self.rearLeftTalon.config_kP(0, pVal, self.kTimeoutMs)
+        self.rearRightTalon.config_kP(0, pVal, self.kTimeoutMs)
+
+        self.frontLeftTalon.config_kI(0, 0.000, 0)
+        self.frontRightTalon.config_kI(0, 0.000, 0)
+        self.rearLeftTalon.config_kI(0, 0.000, 0)
+        self.rearRightTalon.config_kI(0, 0.000, 0)
+
+        self.frontLeftTalon.config_kD(0, dVal, 0)
+        self.frontRightTalon.config_kD(0, dVal, 0)
+        self.rearLeftTalon.config_kD(0, dVal, 0)
+        self.rearRightTalon.config_kD(0, dVal, 0)
+
         # Setup encoders
         self.leftEncoder = self.rearLeftTalon
         self.rightEncoder = self.rearRightTalon
 
         # Setup Gyro
         self.gyro = ADXRS450_Gyro()
-
-        # Setup Accelerometer
-        self.accel = wpilib.BuiltInAccelerometer()
-        self.vel = 0.0
 
     def autonomousInit(self):
         """Called only at the beginning of autonomous mode."""
@@ -111,11 +127,11 @@ class Robot(wpilib.TimedRobot):
         trajectory = pf.generator.generate_trajectory(
             points,
             pf.hermite.pf_fit_hermite_cubic,
-            pf.SAMPLES_FAST, #pf.SAMPLES_HIGH,
+            pf.SAMPLES_FAST,
             dt=self.DT, #self.getPeriod(),
             max_velocity=self.KV,
             max_acceleration=self.KA,
-            max_jerk=120.0
+            max_jerk=60
         )
 
         # Wheelbase Width = 2 ft
@@ -126,13 +142,13 @@ class Robot(wpilib.TimedRobot):
         leftFollower.configureEncoder(
             self.leftEncoder.getSelectedSensorPosition(self.kPIDLoopIdx), self.ENCODER_COUNTS_PER_REV, self.WHEEL_CIRCUMFERENCE
         )
-        leftFollower.configurePIDVA(self.KP, 0.0, 0.0, 1 / self.KV, 0)
+        leftFollower.configurePIDVA(0, 0.0, 0.0, 1, 1)
 
         rightFollower = pf.followers.EncoderFollower(right, self.logger)
         rightFollower.configureEncoder(
             -self.rightEncoder.getSelectedSensorPosition(self.kPIDLoopIdx), self.ENCODER_COUNTS_PER_REV, self.WHEEL_CIRCUMFERENCE
         )
-        rightFollower.configurePIDVA(self.KP, 0.0, 0.0, 1 / self.KV, 0)
+        rightFollower.configurePIDVA(0, 0.0, 0.0, 1, 1)
 
         self.leftFollower = leftFollower
         self.rightFollower = rightFollower
@@ -153,40 +169,52 @@ class Robot(wpilib.TimedRobot):
         angleDifference = pf.bound_angle(desired_heading - gyro_heading)
         turn = self.KS * (-1.0 / 80.0) * angleDifference
 
-        leftSpeed = leftSpeed + turn
-        rightSpeed = rightSpeed - turn
+        leftSpeed = leftSpeed # + turn
+        rightSpeed = rightSpeed # - turn
 
-        print(leftSpeed, rightSpeed)
+        self.sd.putNumber("Delta speed", leftSpeed - rightSpeed)
         
-        self.sd.putNumber("Left Speed", leftSpeed)
-        self.sd.putNumber("Right Speed", rightSpeed)
-        self.sd.putNumber("Left Encoder", self.leftEncoder.getSelectedSensorPosition(self.kPIDLoopIdx))
-        self.sd.putNumber("Right Encoder", self.rightEncoder.getSelectedSensorPosition(self.kPIDLoopIdx))
-        self.sd.putNumber("Robot Heading", gyro_heading)
-        self.sd.putNumber("Target Heading", desired_heading)
 
-        self.frontLeftTalon.set(ControlMode.PercentOutput, leftSpeed)
-        self.rearLeftTalon.set(ControlMode.PercentOutput, leftSpeed)
-        self.frontRightTalon.set(ControlMode.PercentOutput, rightSpeed)
-        self.rearRightTalon.set(ControlMode.PercentOutput, rightSpeed)
+        self.velocity = -self.leftEncoder.getSelectedSensorVelocity(self.kPIDLoopIdx) + self.rightEncoder.getSelectedSensorVelocity(self.kPIDLoopIdx)
+
+        self.sd.putNumber("Right vel", self.rightEncoder.getSelectedSensorVelocity(self.kPIDLoopIdx))
+        self.sd.putNumber("Left vel", -self.leftEncoder.getSelectedSensorVelocity(self.kPIDLoopIdx))
+
+        
+        
+        # m/s leftSpeed * self.KV
+        # m/s / encoder counts
+        #leftVelocity = leftSpeed * self.ENCODER_COUNTS_PER_REV * self.WHEEL_CIRCUMFERENCE
+        #rightVelocity = rightSpeed * self.ENCODER_COUNTS_PER_REV * self.WHEEL_CIRCUMFERENCE
+
+        leftVelocity = (leftSpeed*self.ENCODER_COUNTS_PER_REV) / (self.WHEEL_CIRCUMFERENCE*10)
+        rightVelocity = (rightSpeed*self.ENCODER_COUNTS_PER_REV) / (self.WHEEL_CIRCUMFERENCE*10)
+        
+        self.sd.putNumber("Target Right vel", rightVelocity)
+        self.sd.putNumber("Target Left vel", leftVelocity)
+
+        self.frontLeftTalon.set(ControlMode.Velocity, leftVelocity)
+        self.rearLeftTalon.set(ControlMode.Velocity, leftVelocity)
+        self.frontRightTalon.set(ControlMode.Velocity, rightVelocity)
+        self.rearRightTalon.set(ControlMode.Velocity, rightVelocity)
 
 
     def teleopInit(self):
         # Reset Gyro
         self.gyro.reset()
 
-        self.vel = 0.0
+        self.maxSpeed = 0
+        self.last_velocity = 0
+        self.maxAccel = 0
 
     def teleopPeriodic(self):
         # Get max speed
         self.speed = (-self.joystick.getRawAxis(3) + 1)/2
 
-        # Get velocity
-        self.vel += math.sqrt(self.threshhold(self.accel.getX(), 0.02)**2 + self.threshhold(self.accel.getY(), 0.05)**2)
-
         # Get turn and movement speeds
-        self.tAxis = self.threshhold(self.joystick.getRawAxis(2), 0.05) * self.tSpeed * self.speed
         self.yAxis = self.threshhold(-self.joystick.getRawAxis(1), 0.05) * self.ySpeed * self.speed
+        self.tAxis = self.threshhold(self.joystick.getRawAxis(2), 0.05) * self.tSpeed * self.speed * (1 - abs(self.yAxis) * self.turnSlowdown) 
+       
         
         # Calculate right and left speeds
         leftSpeed = self.yAxis+self.tAxis
@@ -205,13 +233,32 @@ class Robot(wpilib.TimedRobot):
         self.frontRightTalon.set(ControlMode.PercentOutput, rightSpeed)
         self.rearRightTalon.set(ControlMode.PercentOutput, rightSpeed)
 
+        self.velocity = -self.leftEncoder.getSelectedSensorVelocity(self.kPIDLoopIdx) + self.rightEncoder.getSelectedSensorVelocity(self.kPIDLoopIdx)
+
+        self.velocity = self.velocity / 2
+
+        self.sd.putNumber("Velocity", self.velocity / self.ENCODER_COUNTS_PER_REV * self.WHEEL_CIRCUMFERENCE * 10)
+
+        self.acceleration = (self.velocity - self.last_velocity) / self.DT
+
         # Update SmartDashboard
-        self.sd.putNumber("Left Encoder", self.leftEncoder.getSelectedSensorPosition(self.kPIDLoopIdx))
-        self.sd.putNumber("Right Encoder", self.rightEncoder.getSelectedSensorPosition(self.kPIDLoopIdx))
-        self.sd.putNumber("Robot Heading", self.gyro.getAngle())
-        self.sd.putNumber("Robot Speed", self.vel/10)
-        self.sd.putNumber("Accel X", self.accel.getX())
-        self.sd.putNumber("Accel Y", self.accel.getY())
+        # self.sd.putNumber("Velocity", self.velocity)
+        # self.sd.putNumber("Right Velocity", self.rightEncoder.getSelectedSensorVelocity(self.kPIDLoopIdx))
+        # self.sd.putNumber("Left Velocity", self.leftEncoder.getSelectedSensorVelocity(self.kPIDLoopIdx))
+
+        if self.acceleration > self.maxAccel:
+            self.maxAccel = self.acceleration
+
+        # self.sd.putNumber("Acceleration", self.acceleration)
+        self.sd.putNumber("Max Acceleration", self.maxAccel/self.ENCODER_COUNTS_PER_REV * self.WHEEL_CIRCUMFERENCE * 10)
+
+        # self.sd.putNumber("Turn Slowdown", (1 - self.yAxis * self.turnSlowdown))
+
+        if self.velocity > self.maxSpeed:
+            self.maxSpeed = self.velocity
+        
+        self.sd.putNumber("Max Velocity", self.maxSpeed/self.ENCODER_COUNTS_PER_REV * self.WHEEL_CIRCUMFERENCE * 10)
+        self.last_velocity = self.velocity
 
 if __name__ == "__main__":
     wpilib.run(Robot)

@@ -11,7 +11,7 @@ class TrajectoryFollower:
     """
     WHEEL_DIAMETER = 0.1524 # meters (6 inches)
     DRIVE_WIDTH = 0.584 # meters (23 inches)
-    KV = 5.99
+    KV = 3.743381
     KA = 0.717
     KS = 1.08
     DT = 0.02
