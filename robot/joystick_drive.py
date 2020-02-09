@@ -1,10 +1,3 @@
-import wpilib
-from wpilib.drive import DifferentialDrive
-
-# Dictionary for identifying compatible inputs other than Logitech gamepad and joystick
-
-
-
 class joystick_drive:
     
     # TODO: Make these enums?
@@ -46,6 +39,7 @@ class joystick_drive:
         return self.joystickName
 
     def __init__(self, joystick_obj, speed, ySpeed, tSpeed):
+        import wpilib
         # Sets the speed
         self.speed = speed
         self.ySpeed = ySpeed
@@ -97,7 +91,7 @@ class joystick_drive:
         leftSpeed = yAxis+tAxis
         rightSpeed = yAxis-tAxis
 
-        return leftSpeed,rightSpeed
+        return leftSpeed, rightSpeed
 
     def gamepad_drive_teleop(self, joystick_obj):
         # TODO: insert gamepad drive here
