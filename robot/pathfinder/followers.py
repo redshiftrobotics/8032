@@ -13,11 +13,10 @@ class EncoderConfig:
 
 ## Modified from: https://github.com/robotpy/robotpy-pathfinder/blob/master/pathfinder/followers.py
 class EncoderFollower:
-    def __init__(self, trajectory, logger):
+    def __init__(self, trajectory):
         self.trajectory = trajectory
         self.cfg = EncoderConfig()
         self.reset()
-        self.logger = logger
 
     def setTrajectory(self, trajectory):
         self.trajectory = trajectory
