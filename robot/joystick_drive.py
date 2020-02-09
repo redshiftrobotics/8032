@@ -56,24 +56,25 @@ class joystick_drive:
         self.determine_control_scheme(joystick_obj)
         self.set_control_scheme(joystick_obj)
 
-
     def determine_control_scheme(self, joystick_obj):
         """Sets the values returned by wpilib.interfaces.GenericHID to self.HIDType and self.joystickName"""
         self.HIDType = joystick_obj.getType()
         self.joystickName = joystick_obj.getName()
 
     def set_control_scheme(self, joystick_obj):
-        if self.HIDType == wpilib.interfaces.GenericHID.HIDType.kHIDJoystick:
+        if self.HIDType == wpilib.interfaces.GenericHID.HIDType.kHIDJoystick and self.joystickName in self.input_joystick_map:
             joystick_obj.setXChannel(self.input_joystick_map[self.joystickName]["xChannel"])
             joystick_obj.setYChannel(self.input_joystick_map[self.joystickName]["yChannel"])
             joystick_obj.setTwistChannel(self.input_joystick_map[self.joystickName]["twistChannel"])
             joystick_obj.setThrottleChannel(self.input_joystick_map[self.joystickName]["throttleChannel"])
-
+        elif self.HIDType == wpilib.interfaces.GenericHID.HIDType.kHIDJoystick and not(self.joystickName in self.input_joystick_map):
+            print("Unknown joystick name used on port " + str(joystick_obj.getPort()) + ": " + self.joystickName + "; will use default mapping. Please use a different controller or setup a new mapping.")
         #     self.calculateSpeeds = self.joystick_drive_teleop
         # else: # Defaults to tank drive with gamepad
         #     self.calculateSpeeds = self.gamepad_drive_teleop
+        # print("Unknown controller name used detected on port " + str(joystick_obj.getPort()) + ": " + self.joystickName + "; will use default mapping. Please use a different controller or setup a new mapping.")
     
-    def threshold(self, value, limit):
+    def threshold(self, value, limit): # TODO: Values are not continuous, e.g. as soon as the value is above the limit, the return value jumps from 0 to the limit 
          if (abs(value) < limit):
             return 0
          else:
@@ -86,7 +87,7 @@ class joystick_drive:
             return self.gamepad_drive_teleop(joystick_obj)
 
     def joystick_drive_teleop(self, joystick_obj):
-        # Get max speed
+        # Get max speed from throttle
         self.speed = (-joystick_obj.getThrottle() + 1)/2
 
         # Get turn and movement speeds
