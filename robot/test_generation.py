@@ -7,9 +7,7 @@ import math
 
 # trajectory = pf.generator.generate_trajectory(points, pf.hermite.pf_fit_hermite_quintic, pf.SAMPLES_FAST, 0.02, 3.743381, 22.355086, 120.0)
 
-path_name = "Initiation Line"
-
-trajectory = pf.read_from_pathweaver("paths/output/"+path_name+".wpilib.json")
+trajectory = pf.read_from_pathweaver("Initiation Line", __file__)
 left, right = pf.modifiers.tank(trajectory, 1.0)
 
 # -------------------------------------------------------------------------------------------------------------------------------------------#

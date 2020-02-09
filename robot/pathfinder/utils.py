@@ -1,5 +1,6 @@
 import json
 from pathfinder.mathutil import bound_radians
+from pathlib import Path
 
 class Waypoint:
     def __init__(self, x, y, angle):
@@ -22,7 +23,9 @@ def return_object(obj):
     attrs = vars(obj)
     return ', '.join("%s: %s" % item for item in attrs.items())
 
-def read_from_pathweaver(path):
+def read_from_pathweaver(name, filepath):
+    path = Path(filepath).parent / "paths" / "output" / (name + ".wpilib.json")
+
     trajectory_json = {}
     with open(path) as json_data:
         trajectory_json = json.load(json_data)

@@ -111,7 +111,7 @@ class Robot(wpilib.TimedRobot):
         """Called only at the beginning of autonomous mode."""
         # Read trajectory from file
         path_name = "Initiation Line"
-        trajectory = pf.read_from_pathweaver("paths/output/"+path_name+".wpilib.json")
+        trajectory = pf.read_from_pathweaver(path_name, __file__)
 
         # NOTE: This is the old way using pf's trajectory generator.
         #   It is broken and using PathWeaver is highly recommended
