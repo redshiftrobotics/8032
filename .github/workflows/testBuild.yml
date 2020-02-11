@@ -15,10 +15,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install wpilib==2020.1.2.3
-        pip install pyfrc==2020.0.0
-        pip install pynetworktables==2020.0.1
-        pip install robotpy-ctre==2020.1.0
+        pip install -r workflow-requirements.txt
+
     - name: Build
       run: |
         python robot/robot.py add-tests

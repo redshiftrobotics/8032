@@ -6,7 +6,6 @@ from robotpy_ext.control.button_debouncer import ButtonDebouncer
 from ctre import WPI_TalonSRX, ControlMode, NeutralMode, FeedbackDevice
 from intake import Intake
 
-
 class Robot(wpilib.TimedRobot):
     def threshold(self, value, limit):
          if (abs(value) < limit):
@@ -20,7 +19,7 @@ class Robot(wpilib.TimedRobot):
         self.kPIDLoopIdx = 0
         self.kTimeoutMs = 10
         
-		# Sets the speed
+		    # Sets the speed
         self.speed = 0.4
         self.ySpeed = 1
         self.tSpeed = 0.75
@@ -29,7 +28,6 @@ class Robot(wpilib.TimedRobot):
         self.previousAvg = 0
         self.currentAvg = 0
 
-        
         # Smart Dashboard
         self.sd = NetworkTables.getTable('SmartDashboard')
 
@@ -133,7 +131,6 @@ class Robot(wpilib.TimedRobot):
         # Update SmartDashboard
         self.sd.putNumber("Left Encoder", self.leftEncoder.getSelectedSensorPosition(self.kPIDLoopIdx))
         self.sd.putNumber("Right Encoder", self.rightEncoder.getSelectedSensorPosition(self.kPIDLoopIdx))
-    
     
 if __name__ == "__main__":
     wpilib.run(Robot)
