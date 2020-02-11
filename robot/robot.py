@@ -50,8 +50,10 @@ class Robot(wpilib.TimedRobot):
         self.frontRightTalon = WPI_TalonSRX(3)
         self.rearRightTalon = WPI_TalonSRX(1)
 
-        self.rightPistonButton = ButtonDebouncer(driverJoystick, 4)
-        self.leftPistonButton = ButtonDebouncer(driverJoystick, 5)
+        self.rightPistonButton = ButtonDebouncer(self.driverJoystick, 5)
+        self.leftPistonButton = ButtonDebouncer(self.driverJoystick, 6)
+
+        self.intakeSpeedToggle = ButtonDebouncer(self.driverJoystick, 1)
 
         # Enable auto breaking
         self.frontLeftTalon.setNeutralMode(NeutralMode.Brake)
@@ -113,6 +115,15 @@ class Robot(wpilib.TimedRobot):
 
         self.intake.test(True, self.rightPistonButton.get())
         self.intake.test(False, self.leftPistonButton.get())
+
+        if self.intakeSpeedToggle.get():
+            speedAverage = self.leftEncoder.getMotorOutputPercent() + self.rightEncoder.getMotorOutputPercent()
+            speedAverage /= 2
+            speedAverage = abs(speedAverage)
+
+            self.intake.speed(speedAverage + 0.5)
+        else:
+            self.intake.speed(0)
 
         # Get turn and movement speeds
         self.tAxis = self.threshold(self.driverJoystick.getRawAxis(2), 0.05) * self.tSpeed * self.speed

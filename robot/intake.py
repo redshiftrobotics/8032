@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 import wpilib
-from ctre import WPI_TalonSRX
+from ctre import VictorSPX
 
 class Intake:
 
     def __init__(self, intake_motor_channel, right_piston_module_number, right_piston_forward, right_piston_reverse,
                     left_piston_module_number, left_piston_forward, left_piston_reverse):
-        self.intake_motor = WPI_TalonSRX(intake_motor_channel)
+        self.intake_motor = VictorSPX(intake_motor_channel)
         self.right_piston = wpilib.DoubleSolenoid(right_piston_module_number, right_piston_forward, right_piston_reverse)
         self.left_piston = wpilib.DoubleSolenoid(left_piston_module_number, left_piston_forward, left_piston_reverse)
 
@@ -49,7 +49,6 @@ class Intake:
         if self.right_piston.get() != self.right_piston_target:
             self.right_piston.set(self.right_piston_target)
 
-        if self.intake_motor.get() != self.collect_speed:
-            self.intake_motor.set(self.collect_speed)
+        self.intake_motor.set(self.collect_speed)
 
         
