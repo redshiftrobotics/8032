@@ -1,6 +1,6 @@
 name: FRC Build
 
-on: [push, pull_request]
+on: [pull_request]
 
 jobs:
   build:
@@ -16,6 +16,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r workflow-requirements.txt
+
     - name: Build
       run: |
         python robot/robot.py add-tests
