@@ -100,6 +100,44 @@ class joystick_drive:
         return leftSpeed,rightSpeed
 
     def gamepad_drive_teleop(self, joystick_obj):
+        # Get max speed
+        
+        self.tSpeed = self.joystick.getRawAxis(5)
+        self.ySpeed = self.joystick.getRawAxis(5)
+
+        self.ySpeed = self.ySpeed + 1
+        self.tSpeed = self.tSpeed + 1
+        self.ySpeed = self.ySpeed / 2
+        self.tSpeed = self.tSpeed / 2
+
+        self.tAxis = self.threshold(self.joystick.getRawAxis(3), 0.05) * self.tSpeed*-1
+        self.yAxis = self.threshold(-self.joystick.getRawAxis(1), 0.05) * self.ySpeed 
+         
+        # figure out the state of the button 
+        
+        # Get turn and movement speeds
+       
+        # Calculate right and left speeds
+        leftSpeed = self.yAxis
+        rightSpeed = self.tAxis
+
+        
+        if self.button.get():
+            leftSpeed = 0
+            rightSpeed = 0
+        
+        
+        # Update Motors
+        self.frontLeftTalon.set(ControlMode.PercentOutput, leftSpeed)
+        self.rearLeftTalon.set(ControlMode.PercentOutput, leftSpeed)
+        self.frontRightTalon.set(ControlMode.PercentOutput, rightSpeed)
+        self.rearRightTalon.set(ControlMode.PercentOutput, rightSpeed)
+
+        # Update SmartDashboard
+        self.sd.putNumber("Left Encoder", self.leftEncoder.getSelectedSensorPosition(self.kPIDLoopIdx))
+        self.sd.putNumber("Right Encoder", self.rightEncoder.getSelectedSensorPosition(self.kPIDLoopIdx))
+
+
         # TODO: insert gamepad drive here
         return 0,0
 
