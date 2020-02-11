@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 import wpilib
+from ctre import WPI_TalonSRX
 
 class Intake:
 
     def __init__(self, intake_motor_channel, right_piston_module_number, right_piston_forward, right_piston_reverse,
                     left_piston_module_number, left_piston_forward, left_piston_reverse):
-        self.intake_motor = wpilib.Talon(intake_motor_channel)
+        self.intake_motor = WPI_TalonSRX(intake_motor_channel)
         self.right_piston = wpilib.DoubleSolenoid(right_piston_module_number, right_piston_forward, right_piston_reverse)
         self.left_piston = wpilib.DoubleSolenoid(left_piston_module_number, left_piston_forward, left_piston_reverse)
 
@@ -14,7 +15,7 @@ class Intake:
 
         self.collect_speed = 0
 
-    def test(self, out: bool, right: bool):
+    def test(self, right: bool, out: bool):
         """Tests each piston"""
         if out:
             if right:
