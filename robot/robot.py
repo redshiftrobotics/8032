@@ -46,6 +46,7 @@ class Robot(wpilib.TimedRobot):
         self.intake = Intake(0,0,0,0,0,0,0)
         
         # Talon CAN devices
+        # TODO: Fix module numbers
         self.frontLeftTalon = WPI_TalonSRX(2)
         self.rearLeftTalon = WPI_TalonSRX(0)
         self.frontRightTalon = WPI_TalonSRX(3)
