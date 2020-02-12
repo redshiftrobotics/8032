@@ -20,19 +20,19 @@ class Robot(wpilib.TimedRobot):
         self.kPIDLoopIdx = 0
         self.kTimeoutMs = 10
         
-		    # Sets the speed
+        # Sets the speed
         self.speed = 0.4
         self.ySpeed = 1
         self.tSpeed = 0.75
-        self.baseIntakeSpeed = 5
+        self.baseIntakeSpeed = 0.4
 
         # Smart Dashboard
         self.sd = NetworkTables.getTable('SmartDashboard')
 
-        # joysticks 1 & 2 on the driver station
+        # joystick 1 on the driver station
         self.driverJoystick = wpilib.Joystick(0)
         
-        # Create a simple timer (docs: https://robotpy.readthedocs.io/projects/wpilib/en/latest/wpilib/Timer.html#wpilib.timer.Timer.get)
+        # Create a simple timer
         self.timer = wpilib.Timer()
 
         # TODO: Fix module number
@@ -41,16 +41,13 @@ class Robot(wpilib.TimedRobot):
         # TODO: Fix module numbers
         self.intake = Intake(7,61,1,0)
         
-        self.pistonButtonPort = 2
+        self.intakeToggle = ButtonDebouncer(self.driverJoystick, 2)
+        self.intakeCollect = 1
 
-        self.intakeSpeedToggle = ButtonDebouncer(self.driverJoystick, 1)
-
-        # TODO: Fix motor port
         self.transit = Transit(6)
         self.transitForward = 3
         self.transitBackward = 4
 
-        # Talon CAN devices
         # Setup Master motors for each side
         self.leftMaster = WPI_TalonSRX(4) # Front left Motor
         self.leftMaster.setInverted(False)
@@ -99,28 +96,32 @@ class Robot(wpilib.TimedRobot):
         pass
 
     def teleopInit(self):
+        """Called only at the beginning of teleop mode."""
         self.compressor.start()
-        pass 
 
     def teleopPeriodic(self):
+        """Called every 20ms in autonomous mode."""
+
         # Get max speed
         self.speed = (-self.driverJoystick.getRawAxis(3) + 1)/2
 
-        if self.driverJoystick.getRawButton(self.pistonButtonPort):
-            self.intake.extend()
-        else:
-            self.intake.retract()
+        # Extend the intake if needed
+        if self.intakeToggle.get():
+            self.intake.toggle()
 
-        if self.intakeSpeedToggle.get():
-            speedAverage = self.leftMaster.getMotorOutputPercent() + self.rightMaster.getMotorOutputPercent()
-            speedAverage /= 2
-            speedAverage = abs(speedAverage)
-
-            self.intake.speed(speedAverage + 0.5)
+        # Set the speed of the intake
+        if self.driverJoystick.getRawButton(self.intakeCollect):
+            robotDirection = self.leftMaster.get() + self.rightMaster.get()
+            
+            # Check if the robot is moving forwards or backwards
+            if robotDirection < 0:
+                self.intake.speed(self.baseIntakeSpeed+0.5)
+            else:
+                self.intake.speed(self.baseIntakeSpeed)
         else:
             self.intake.speed(0)
         
-
+        # Check update the transit state
         if self.driverJoystick.getRawButton(self.transitForward):
             self.transit.forward()
         elif self.driverJoystick.getRawButton(self.transitBackward):
