@@ -3,10 +3,11 @@ import wpilib
 from wpilib.drive import DifferentialDrive
 from networktables import NetworkTables
 from robotpy_ext.control.button_debouncer import ButtonDebouncer
-from ctre import WPI_TalonSRX, ControlMode, NeutralMode, FeedbackDevice
+from ctre import WPI_TalonSRX, ControlMode, NeutralMode, FeedbackDevice, FollowerType
 
 from intake import Intake
 from transit import Transit
+from hang import Hang
 
 class Robot(wpilib.TimedRobot):
     def threshold(self, value, limit):
@@ -35,15 +36,15 @@ class Robot(wpilib.TimedRobot):
         # Create a simple timer
         self.timer = wpilib.Timer()
 
-        # TODO: Fix module number
+        # Setup the compressor
         self.compressor = wpilib.Compressor(61)
 
-        # TODO: Fix module numbers
+        # Setup the intake
         self.intake = Intake(7,61,1,0)
-        
         self.intakeToggle = ButtonDebouncer(self.driverJoystick, 2)
         self.intakeCollect = 1
 
+        # Setup the transit
         self.transit = Transit(6)
         self.transitForward = 3
         self.transitBackward = 4
@@ -62,12 +63,12 @@ class Robot(wpilib.TimedRobot):
         # Setup Follower motors for each side
         self.leftFollower0 = WPI_TalonSRX(2) # Back left motor
         self.leftFollower0.setInverted(False)
-        self.leftFollower0.follow(self.leftMaster)
+        self.leftFollower0.follow(self.leftMaster, FollowerType.AuxOutput1)
         self.leftFollower0.setNeutralMode(NeutralMode.Brake)
 
         self.rightFollower0 = WPI_TalonSRX(3) # Back right motor
         self.rightFollower0.setInverted(False)
-        self.rightFollower0.follow(self.leftMaster)
+        self.rightFollower0.follow(self.leftMaster, FollowerType.AuxOutput1)
         self.rightFollower0.setNeutralMode(NeutralMode.Brake)
 
         # Setup encoders
