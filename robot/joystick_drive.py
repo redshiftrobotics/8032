@@ -26,7 +26,14 @@ class joystick_drive:
             "yChannel": 1,
             "twistChannel": 3,
             "throttleChannel": 4
+
+        
+        },
+        "Xbox Controller": {
+            "forwardbuttondrive": 1,
+            "backwardbuttondrive": 2
         }
+        
     }
     
     def setHIDType(self, HIDType):
@@ -81,6 +88,14 @@ class joystick_drive:
             return round(value, 2)
 
     def calculateSpeeds(self, joystick_obj):
+
+        self.buttonDrive = 1
+        if self.button.get(1):
+            self.buttonDrive = 1
+        if self.button.get(2):
+            self.buttonDrive = -1
+
+
         if self.HIDType == wpilib.interfaces.GenericHID.HIDType.kHIDJoystick:
             return self.joystick_drive_teleop(joystick_obj)
         else:
@@ -89,10 +104,13 @@ class joystick_drive:
     def joystick_drive_teleop(self, joystick_obj):
         # Get max speed from throttle
         self.speed = (-joystick_obj.getThrottle() + 1)/2
+        
+        
+        
 
         # Get turn and movement speeds
-        tAxis = self.threshold(joystick_obj.getTwist(), 0.05) * self.tSpeed * self.speed
-        yAxis = self.threshold(-joystick_obj.getY(), 0.05) * self.ySpeed * self.speed
+        tAxis = self.threshold(joystick_obj.getTwist(), 0.05) * self.tSpeed * self.speed*self.buttonDrive
+        yAxis = self.threshold(-joystick_obj.getY(), 0.05) * self.ySpeed * self.speed*self.buttonDrive
         
         # Calculate right and left speeds
         leftSpeed = yAxis+tAxis
@@ -126,20 +144,10 @@ class joystick_drive:
         if self.button.get():
             leftSpeed = 0
             rightSpeed = 0
-        
-        
+                
         # Update Motors
-        self.frontLeftTalon.set(ControlMode.PercentOutput, leftSpeed)
-        self.rearLeftTalon.set(ControlMode.PercentOutput, leftSpeed)
-        self.frontRightTalon.set(ControlMode.PercentOutput, rightSpeed)
-        self.rearRightTalon.set(ControlMode.PercentOutput, rightSpeed)
-
-        # Update SmartDashboard
-        self.sd.putNumber("Left Encoder", self.leftEncoder.getSelectedSensorPosition(self.kPIDLoopIdx))
-        self.sd.putNumber("Right Encoder", self.rightEncoder.getSelectedSensorPosition(self.kPIDLoopIdx))
-
 
         # TODO: insert gamepad drive here
-        return 0,0
+        return leftSpeed, rightSpeed
 
 #class joystick_operator():
