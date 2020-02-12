@@ -36,7 +36,7 @@ class Robot(wpilib.TimedRobot):
         self.timer = wpilib.Timer()
 
         # TODO: Fix module number
-        self.compressor = wpilib.Compressor(0)
+        self.compressor = wpilib.Compressor(61)
 
         # TODO: Fix module numbers
         self.intake = Intake(7,61,1,0)
@@ -112,7 +112,7 @@ class Robot(wpilib.TimedRobot):
             self.intake.retract()
 
         if self.intakeSpeedToggle.get():
-            speedAverage = self.leftEncoder.getMotorOutputPercent() + self.rightEncoder.getMotorOutputPercent()
+            speedAverage = self.leftMaster.getMotorOutputPercent() + self.rightMaster.getMotorOutputPercent()
             speedAverage /= 2
             speedAverage = abs(speedAverage)
 

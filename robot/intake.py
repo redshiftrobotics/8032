@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import wpilib
-from ctre import VictorSPX
+from ctre import VictorSPX, ControlMode
 
 class Intake:
 
@@ -27,8 +27,8 @@ class Intake:
     def update(self):
         """Updates the values if they are changed"""
         if self.piston.get() != self.piston_target:
-            self.piston.set(self.piston)
+            self.piston.set(self.piston_target)
 
-        self.intake_motor.set(self.collect_speed)
+        self.intake_motor.set(ControlMode.PercentOutput, self.collect_speed)
 
         
