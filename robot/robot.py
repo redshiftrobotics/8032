@@ -37,10 +37,10 @@ class Robot(wpilib.TimedRobot):
         self.timer = wpilib.Timer()
         
         # Talon CAN devices
-        self.frontLeftTalon = WPI_TalonSRX(2)
-        self.rearLeftTalon = WPI_TalonSRX(0)
-        self.frontRightTalon = WPI_TalonSRX(3)
-        self.rearRightTalon = WPI_TalonSRX(1)
+        self.frontLeftTalon = WPI_TalonSRX(4)
+        self.rearLeftTalon = WPI_TalonSRX(2)
+        self.frontRightTalon = WPI_TalonSRX(5)
+        self.rearRightTalon = WPI_TalonSRX(3)
 
         # Enable auto breaking
         self.frontLeftTalon.setNeutralMode(NeutralMode.Brake)

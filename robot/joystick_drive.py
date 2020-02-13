@@ -122,16 +122,13 @@ class joystick_drive:
     def gamepad_drive_teleop(self, joystick_obj):
         # Get max speed
         
-        self.tSpeed = self.joystick.getRawAxis(5)
-        self.ySpeed = self.joystick.getRawAxis(5)
+        self.ySpeed = joystick_obj.getRawAxis(5)
 
         self.ySpeed = self.ySpeed + 1
-        self.tSpeed = self.tSpeed + 1
         self.ySpeed = self.ySpeed / 2
-        self.tSpeed = self.tSpeed / 2
 
-        self.tAxis = self.threshold(self.joystick.getRawAxis(3), 0.05) * self.tSpeed*-1
-        self.yAxis = self.threshold(-self.joystick.getRawAxis(1), 0.05) * self.ySpeed 
+        self.tAxis = self.threshold(joystick_obj.getRawAxis(3), 0.05) * self.ySpeed*-1
+        self.yAxis = self.threshold(-joystick_obj.getRawAxis(1), 0.05) * self.ySpeed 
          
         # figure out the state of the button 
         
@@ -142,13 +139,12 @@ class joystick_drive:
         rightSpeed = self.tAxis
 
         
-        if self.button.get():
-            leftSpeed = 0
-            rightSpeed = 0
+        #if self.button.get():
+         #   leftSpeed = 0
+          #  rightSpeed = 0
                 
         # Update Motors
 
-        # TODO: insert gamepad drive here
         return leftSpeed, rightSpeed
 
 #class joystick_operator():
