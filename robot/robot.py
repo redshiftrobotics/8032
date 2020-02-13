@@ -63,12 +63,12 @@ class Robot(wpilib.TimedRobot):
         # Setup Follower motors for each side
         self.leftFollower0 = WPI_TalonSRX(2) # Back left motor
         self.leftFollower0.setInverted(False)
-        self.leftFollower0.follow(self.leftMaster, FollowerType.AuxOutput1)
+        self.leftFollower0.follow(self.leftMaster)
         self.leftFollower0.setNeutralMode(NeutralMode.Brake)
 
         self.rightFollower0 = WPI_TalonSRX(3) # Back right motor
-        self.rightFollower0.setInverted(False)
-        self.rightFollower0.follow(self.leftMaster, FollowerType.AuxOutput1)
+        self.rightFollower0.setInverted(True)
+        self.rightFollower0.follow(self.rightMaster)
         self.rightFollower0.setNeutralMode(NeutralMode.Brake)
 
         # Setup encoders
