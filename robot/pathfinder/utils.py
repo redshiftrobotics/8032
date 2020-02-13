@@ -9,8 +9,9 @@ class Waypoint:
         self.angle = angle
 
 class Segment:
-    def __init__(self, dt=0, x=0, y=0, position=0, velocity=0, acceleration=0, jerk=0, heading=0):
+    def __init__(self, dt=0, x=0, y=0, position=0, velocity=0, acceleration=0, jerk=0, heading=0, t=0):
         self.dt = dt
+        self.t = t
         self.x = x
         self.y = y
         self.position = position
@@ -46,7 +47,8 @@ def read_from_pathweaver(name, filepath):
                           seg["velocity"],
                           seg["acceleration"],
                           (seg["acceleration"]-last_segment.acceleration)/dt,
-                          bound_radians(seg["pose"]["rotation"]["radians"]))
+                          bound_radians(seg["pose"]["rotation"]["radians"]),
+                          seg["time"])
 
         trajectory.append(gen_seg)
 

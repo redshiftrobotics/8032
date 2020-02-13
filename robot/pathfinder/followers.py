@@ -16,10 +16,14 @@ class EncoderFollower:
     def __init__(self, trajectory):
         self.trajectory = trajectory
         self.cfg = EncoderConfig()
-        self.reset()
+        self.last_error = 0
+        self.segment = 0
+        self.start_time = 0
+        self.tlen = len(trajectory)
 
     def setTrajectory(self, trajectory):
         self.trajectory = trajectory
+        self.tlen = len(trajectory)
         self.reset()
 
     def configurePIDVA(self, kp, ki, kd, kv, ka):
@@ -37,16 +41,31 @@ class EncoderFollower:
     def reset(self):
         self.last_error = 0
         self.segment = 0
+        self.start_time = 0
 
-    def calculate(self, encoder_tick):
-        tlen = len(self.trajectory)
-        if self.segment >= tlen:
+    def start(self, start_time):
+        self.reset()
+        self.start_time = start_time
+
+    def calculate(self, encoder_tick, now):
+        if self.segment >= self.tlen:
             self.finished = 1
             self.output = 0
             self.heading = self.trajectory[-1].heading
             return 0.0
         else:
-            return pathfinder_follow_encoder2(self.cfg, self, self.trajectory[self.segment], tlen, encoder_tick)
+            out = pathfinder_follow_encoder2(self.cfg, self, self.trajectory[self.segment], self.tlen, encoder_tick)
+
+            time_passed = now-self.start_time
+            print(time_passed, now, self.trajectory[self.segment].t, self.segment)
+
+            while self.trajectory[self.segment].t < time_passed:
+                self.segment = self.segment + 1
+
+                if self.segment >= self.tlen:
+                    break
+
+            return out
 
     def getHeading(self):
         return self.heading
@@ -71,7 +90,7 @@ def pathfinder_follow_encoder2(c, follower, s, trajectory_length, encoder_tick):
         follower.last_error = error
         follower.heading = s.heading
         follower.output = calculated_value
-        follower.segment = follower.segment + 1
+        #follower.segment = follower.segment + 1
         return calculated_value
     else:
         follower.finished = 1

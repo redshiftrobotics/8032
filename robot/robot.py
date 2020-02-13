@@ -10,6 +10,8 @@ from ctre import WPI_TalonSRX, ControlMode, NeutralMode, FeedbackDevice
 import pathfinder as pf
 import math
 
+import time
+
 class Robot(wpilib.TimedRobot):
     WHEEL_CIRCUMFERENCE = 0.1524 * math.pi # meters (6 inches)
     DRIVE_WIDTH = 0.305473061 # meters (23 inches)
@@ -54,12 +56,12 @@ class Robot(wpilib.TimedRobot):
         self.timer = wpilib.Timer()
         
         # Setup Master motors for each side
-        self.leftMaster = WPI_TalonSRX(0) # Back left Motor
+        self.leftMaster = WPI_TalonSRX(4) # Back left Motor
         self.leftMaster.setInverted(False)
         self.leftMaster.setSensorPhase(False)
         self.leftMaster.setNeutralMode(NeutralMode.Brake)
 
-        self.rightMaster = WPI_TalonSRX(1) # Back right Motor
+        self.rightMaster = WPI_TalonSRX(5) # Back right Motor
         self.rightMaster.setInverted(True)
         self.rightMaster.setSensorPhase(False)
         self.rightMaster.setNeutralMode(NeutralMode.Brake)
@@ -71,8 +73,8 @@ class Robot(wpilib.TimedRobot):
         self.leftFollower0.setNeutralMode(NeutralMode.Brake)
 
         self.rightFollower0 = WPI_TalonSRX(3) # Front right motor
-        self.rightFollower0.setInverted(False)
-        self.rightFollower0.follow(self.leftMaster)
+        self.rightFollower0.setInverted(True)
+        self.rightFollower0.follow(self.rightMaster)
         self.rightFollower0.setNeutralMode(NeutralMode.Brake)
 
         # Setup encoders
@@ -109,6 +111,13 @@ class Robot(wpilib.TimedRobot):
 
     def autonomousInit(self):
         """Called only at the beginning of autonomous mode."""
+        # Reset Gyro
+        self.gyro.reset()
+
+        # Reset Encoders
+        self.leftMaster.setSelectedSensorPosition(0)
+        self.rightMaster.setSelectedSensorPosition(0)
+
         # Read trajectory from file
         path_name = "Initiation Line"
         trajectory = pf.read_from_pathweaver(path_name, __file__)
@@ -129,39 +138,36 @@ class Robot(wpilib.TimedRobot):
         #     max_acceleration=self.KA,
         #     max_jerk=60
         # )
-        
-        # Reset Encoders
-        self.leftMaster.setSelectedSensorPosition(0)
-        self.rightMaster.setSelectedSensorPosition(0)
-
-        # Reset Gyro
-        self.gyro.reset()
 
         # Convert the center trajectory to individual right and left side trajectories
         left, right = pf.modifiers.tank(trajectory, self.DRIVE_WIDTH)
 
         # Setup and configure the trajectory followers
-        leftTrajectoryFollower = pf.followers.EncoderFollower(left)
-        leftTrajectoryFollower.configureEncoder(
+        self.leftTrajectoryFollower = pf.followers.EncoderFollower(left)
+        self.leftTrajectoryFollower.configureEncoder(
             self.leftMaster.getSelectedSensorPosition(self.kPIDLoopIdx), self.ENCODER_COUNTS_PER_REV, self.WHEEL_CIRCUMFERENCE
         )
-        leftTrajectoryFollower.configurePIDVA(0.0, 0.0, 0.0, 1, 1)
+        self.leftTrajectoryFollower.configurePIDVA(0.0, 0.0, 0.0, 1, 1)
 
-        rightTrajectoryFollower = pf.followers.EncoderFollower(right)
-        rightTrajectoryFollower.configureEncoder(
+        self.rightTrajectoryFollower = pf.followers.EncoderFollower(right)
+        self.rightTrajectoryFollower.configureEncoder(
             -self.rightMaster.getSelectedSensorPosition(self.kPIDLoopIdx), self.ENCODER_COUNTS_PER_REV, self.WHEEL_CIRCUMFERENCE
         )
-        rightTrajectoryFollower.configurePIDVA(0, 0.0, 0.0, 1, 1)
+        self.rightTrajectoryFollower.configurePIDVA(0, 0.0, 0.0, 1, 1)
 
-        self.leftTrajectoryFollower = leftTrajectoryFollower
-        self.rightTrajectoryFollower = rightTrajectoryFollower
+        start_time = self.timer.getFPGATimestamp()
+        self.leftTrajectoryFollower.start(start_time)
+        self.rightTrajectoryFollower.start(start_time)
     
     def autonomousPeriodic(self):
         """Called every 20ms in autonomous mode."""
 
         # Calculate the target x/y movement based on path finding
-        leftSpeed = self.leftTrajectoryFollower.calculate(self.leftMaster.getSelectedSensorPosition(self.kPIDLoopIdx))
-        rightSpeed = self.rightTrajectoryFollower.calculate(self.rightMaster.getSelectedSensorPosition(self.kPIDLoopIdx))
+        now = self.timer.getFPGATimestamp()
+        print("left")
+        leftSpeed = self.leftTrajectoryFollower.calculate(self.leftMaster.getSelectedSensorPosition(self.kPIDLoopIdx), now)
+        print("right")
+        rightSpeed = self.rightTrajectoryFollower.calculate(self.rightMaster.getSelectedSensorPosition(self.kPIDLoopIdx), now)
 
         # Calculate target rotation using the gyro and pathfinding
         gyro_heading = -self.gyro.getAngle()
