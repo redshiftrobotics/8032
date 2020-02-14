@@ -25,8 +25,13 @@ class Hang:
         """Retracts hang"""
         self.hang_speed = self.retract_speed
 
+    def stop(self):
+        """Stops hang"""
+        self.hang_speed = 0
+
     def update(self):
         """Updates the values if they are changed"""
-        self.intake_motor.set(ControlMode.Speed, self.collect_speed)
+        self.master_motor.set(ControlMode.PercentOutput, self.hang_speed)
+        print(self.hang_speed)
 
         

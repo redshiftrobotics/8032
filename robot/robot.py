@@ -51,6 +51,8 @@ class Robot(wpilib.TimedRobot):
         self.transitForward = 3
         self.transitBackward = 4
 
+        self.hang = Hang(0,1, 0.1, -0.1, 0)
+
         # Setup Master motors for each side
         self.leftMaster = WPI_TalonSRX(4) # Front left Motor
         self.leftMaster.setInverted(False)
@@ -127,11 +129,14 @@ class Robot(wpilib.TimedRobot):
         
         # Check update the transit state
         if self.driverJoystick.getRawButton(self.transitForward):
-            self.transit.forward()
+            #self.transit.forward()
+            self.hang.extend()
         elif self.driverJoystick.getRawButton(self.transitBackward):
-            self.transit.backward()
+            #self.transit.backward()
+            self.hang.retract()
         else:
-            self.transit.stop()
+            #self.transit.stop()
+            self.hang.stop()
 
         # Get turn and movement speeds
         self.xAxis = self.threshold(self.driverJoystick.getRawAxis(2), 0.05) * self.xSpeed * self.speed # * pow((1-abs(self.tAxis)),0.25)
@@ -139,6 +144,8 @@ class Robot(wpilib.TimedRobot):
 
         self.transit.update()
         self.intake.update()
+
+        self.hang.update()
         
         self.drive.arcadeDrive(self.xAxis, self.tAxis, ControlMode.PercentOutput)
     
