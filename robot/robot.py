@@ -3,11 +3,12 @@ import wpilib
 from wpilib.drive import DifferentialDrive
 from networktables import NetworkTables
 from robotpy_ext.control.button_debouncer import ButtonDebouncer
-from ctre import WPI_TalonSRX, ControlMode, NeutralMode, FeedbackDevice, FollowerType
+from ctre import WPI_TalonSRX, ControlMode, NeutralMode, FeedbackDevice, FollowerType, FeedbackDevice
 
 from intake import Intake
 from transit import Transit
 from hang import Hang
+from drive import Drive
 
 class Robot(wpilib.TimedRobot):
     def threshold(self, value, limit):
@@ -23,8 +24,9 @@ class Robot(wpilib.TimedRobot):
         
         # Sets the speed
         self.speed = 0.4
-        self.ySpeed = 1
+        self.xSpeed = 1
         self.tSpeed = 0.75
+        self.turnSlowdown = 0.8
         self.baseIntakeSpeed = 0.4
 
         # Smart Dashboard
@@ -61,15 +63,16 @@ class Robot(wpilib.TimedRobot):
         self.rightMaster.setNeutralMode(NeutralMode.Brake)
 
         # Setup Follower motors for each side
-        self.leftFollower0 = WPI_TalonSRX(2) # Back left motor
-        self.leftFollower0.setInverted(False)
-        self.leftFollower0.follow(self.leftMaster)
-        self.leftFollower0.setNeutralMode(NeutralMode.Brake)
+        self.leftAlt = WPI_TalonSRX(2) # Back left motor
+        self.leftAlt.setInverted(False)
+        self.leftAlt.follow(self.leftMaster)
+        self.leftAlt.setNeutralMode(NeutralMode.Brake)
 
-        self.rightFollower0 = WPI_TalonSRX(3) # Back right motor
-        self.rightFollower0.setInverted(True)
-        self.rightFollower0.follow(self.rightMaster)
-        self.rightFollower0.setNeutralMode(NeutralMode.Brake)
+        self.rightAlt = WPI_TalonSRX(3) # Back right motor
+        self.rightAlt.setInverted(True)
+        self.rightAlt.follow(self.rightMaster)
+        self.rightAlt.setNeutralMode(NeutralMode.Brake)
+        
 
         # Setup encoders
         self.leftMaster.configSelectedFeedbackSensor(
@@ -84,9 +87,9 @@ class Robot(wpilib.TimedRobot):
             self.kTimeoutMs,
         )
 
+        self.drive = Drive(self.leftMaster, self.rightMaster, self.rightAlt, self.leftAlt)
+
         # Setup Differential Drive
-        self.drive = DifferentialDrive(self.leftMaster, self.rightMaster)
-        self.drive.setDeadband(0) # Disable auto joystick thresholding
 
     def autonomousInit(self):
         """Called only at the beginning of autonomous mode."""
@@ -131,12 +134,13 @@ class Robot(wpilib.TimedRobot):
             self.transit.stop()
 
         # Get turn and movement speeds
-        self.tAxis = self.threshold(self.driverJoystick.getRawAxis(2), 0.05) * self.tSpeed * self.speed
-        self.yAxis = self.threshold(-self.driverJoystick.getRawAxis(1), 0.05) * self.ySpeed * self.speed
+        self.xAxis = self.threshold(self.driverJoystick.getRawAxis(2), 0.05) * self.xSpeed * self.speed # * pow((1-abs(self.tAxis)),0.25)
+        self.tAxis = self.threshold(self.driverJoystick.getRawAxis(1), 0.05) * self.tSpeed * self.speed * (1-abs(self.xAxis)) * self.turnSlowdown
 
         self.transit.update()
         self.intake.update()
-        self.drive.arcadeDrive(self.yAxis, self.tAxis)
+        
+        self.drive.arcadeDrive(self.xAxis, self.tAxis, ControlMode.PercentOutput)
     
 if __name__ == "__main__":
     wpilib.run(Robot)
