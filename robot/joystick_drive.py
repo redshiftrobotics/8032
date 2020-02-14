@@ -67,11 +67,12 @@ class joystick_drive:
         """Sets the values returned by wpilib.interfaces.GenericHID to self.HIDType and self.joystickName"""
         self.HIDType = joystick_obj.getType()
         self.joystickName = joystick_obj.getName()
-        print (self.joystickName)
+        print("Using joystick " + self.joystickName)
 
     def set_control_scheme(self, joystick_obj):
         if self.HIDType == wpilib.interfaces.GenericHID.HIDType.kHIDJoystick and self.joystickName in self.input_joystick_map:
             joystick_obj.setXChannel(self.input_joystick_map[self.joystickName]["xChannel"])
+
             joystick_obj.setYChannel(self.input_joystick_map[self.joystickName]["yChannel"])
             joystick_obj.setTwistChannel(self.input_joystick_map[self.joystickName]["twistChannel"])
             joystick_obj.setThrottleChannel(self.input_joystick_map[self.joystickName]["throttleChannel"])
@@ -90,11 +91,11 @@ class joystick_drive:
 
     def calculateSpeeds(self, joystick_obj):
 
-        self.buttonDrive = 1
-        if self.button.get(1):
-            self.buttonDrive = 1
-        if self.button.get(2):
-            self.buttonDrive = -1
+        # self.buttonDrive = 1
+        # if self.button.get(1):
+        #     self.buttonDrive = 1
+        # if self.button.get(2):
+        #     self.buttonDrive = -1
 
 
         if self.HIDType == wpilib.interfaces.GenericHID.HIDType.kHIDJoystick:
@@ -110,8 +111,8 @@ class joystick_drive:
         
 
         # Get turn and movement speeds
-        tAxis = self.threshold(joystick_obj.getTwist(), 0.05) * self.tSpeed * self.speed*self.buttonDrive
-        yAxis = self.threshold(-joystick_obj.getY(), 0.05) * self.ySpeed * self.speed*self.buttonDrive
+        tAxis = self.threshold(joystick_obj.getTwist(), 0.05) * self.tSpeed * self.speed#*self.buttonDrive
+        yAxis = self.threshold(-joystick_obj.getY(), 0.05) * self.ySpeed * self.speed#*self.buttonDrive
         
         # Calculate right and left speeds
         leftSpeed = yAxis+tAxis
@@ -122,12 +123,12 @@ class joystick_drive:
     def gamepad_drive_teleop(self, joystick_obj):
         # Get max speed
         
-        self.ySpeed = joystick_obj.getRawAxis(5)
+        self.ySpeed = joystick_obj.getRawAxis(3) # For an unkown reason, this is axis is a different axis between QDriver (5) and FRC Driver Station (3)
 
         self.ySpeed = self.ySpeed + 1
         self.ySpeed = self.ySpeed / 2
 
-        self.tAxis = self.threshold(joystick_obj.getRawAxis(3), 0.05) * self.ySpeed*-1
+        self.tAxis = self.threshold(joystick_obj.getRawAxis(5), 0.05) * self.ySpeed*-1
         self.yAxis = self.threshold(-joystick_obj.getRawAxis(1), 0.05) * self.ySpeed 
          
         # figure out the state of the button 
