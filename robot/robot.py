@@ -17,8 +17,8 @@ class Robot(wpilib.TimedRobot):
     DRIVE_WIDTH = 0.305473061 # meters (23 inches)
     ENCODER_COUNTS_PER_REV = 4096
     KP = 0.028
-    KV = 3.743381
-    KA = 0.717 #22.355086
+    MAX_VELOCITY = 3.743381
+    MAX_ACCELERATION = 22.355086
     KS = 1.08
     DT = 0.02
     ANGLE_CONSTANT = 1
@@ -147,13 +147,13 @@ class Robot(wpilib.TimedRobot):
         self.leftTrajectoryFollower.configureEncoder(
             self.leftMaster.getSelectedSensorPosition(self.kPIDLoopIdx), self.ENCODER_COUNTS_PER_REV, self.WHEEL_CIRCUMFERENCE
         )
-        self.leftTrajectoryFollower.configurePIDVA(0.0, 0.0, 0.0, 1, 1)
+        self.leftTrajectoryFollower.configurePIDVA(0.0, 0.0, 0.0, 1/self.MAX_VELOCITY, 0)
 
         self.rightTrajectoryFollower = pf.followers.EncoderFollower(right)
         self.rightTrajectoryFollower.configureEncoder(
             -self.rightMaster.getSelectedSensorPosition(self.kPIDLoopIdx), self.ENCODER_COUNTS_PER_REV, self.WHEEL_CIRCUMFERENCE
         )
-        self.rightTrajectoryFollower.configurePIDVA(0, 0.0, 0.0, 1, 1)
+        self.rightTrajectoryFollower.configurePIDVA(0, 0.0, 0.0, 1/self.MAX_VELOCITY, 0)
 
         start_time = self.timer.getFPGATimestamp()
         self.leftTrajectoryFollower.start(start_time)
@@ -164,9 +164,7 @@ class Robot(wpilib.TimedRobot):
 
         # Calculate the target x/y movement based on path finding
         now = self.timer.getFPGATimestamp()
-        print("left")
         leftSpeed = self.leftTrajectoryFollower.calculate(self.leftMaster.getSelectedSensorPosition(self.kPIDLoopIdx), now)
-        print("right")
         rightSpeed = self.rightTrajectoryFollower.calculate(self.rightMaster.getSelectedSensorPosition(self.kPIDLoopIdx), now)
 
         # Calculate target rotation using the gyro and pathfinding
@@ -177,22 +175,26 @@ class Robot(wpilib.TimedRobot):
         turn = self.ANGLE_CONSTANT * (-1.0 / 80.0) * angleDifference
 
         # Calculate target motor speeds (-1 to 1)
-        leftSpeed = leftSpeed + turn
-        rightSpeed = rightSpeed - turn
+        #leftSpeed = leftSpeed + turn
+        #rightSpeed = rightSpeed - turn
+
+        self.leftMaster.set(ControlMode.PercentOutput, leftSpeed)
+        self.rightMaster.set(ControlMode.PercentOutput, rightSpeed)
         
         # Convert percent speed into encoder_ticks/100ms
-        leftVelocity = leftSpeed/(self.ENCODER_CONSTANT*10)
-        rightVelocity = rightSpeed/(self.ENCODER_CONSTANT*10)
+        #leftVelocity = leftSpeed/(self.ENCODER_CONSTANT*10)
+        #rightVelocity = rightSpeed/(self.ENCODER_CONSTANT*10)
 
         # Set motor speed
-        self.leftMaster.set(ControlMode.Velocity, leftVelocity)
-        self.rightMaster.set(ControlMode.Velocity, rightVelocity)
+        #self.leftMaster.set(ControlMode.Velocity, leftVelocity)
+        #self.rightMaster.set(ControlMode.Velocity, rightVelocity)
+
         
         # Display info for debugging
-        self.sd.putNumber("Right vel", self.rightMaster.getSelectedSensorVelocity(self.kPIDLoopIdx))
-        self.sd.putNumber("Target Right vel", rightVelocity)
-        self.sd.putNumber("Left vel", self.leftMaster.getSelectedSensorVelocity(self.kPIDLoopIdx))
-        self.sd.putNumber("Target Left vel", leftVelocity)
+        #self.sd.putNumber("Right vel", self.rightMaster.getSelectedSensorVelocity(self.kPIDLoopIdx))
+        #self.sd.putNumber("Target Right vel", rightVelocity)
+        #self.sd.putNumber("Left vel", self.leftMaster.getSelectedSensorVelocity(self.kPIDLoopIdx))
+        #self.sd.putNumber("Target Left vel", leftVelocity)
 
     def teleopInit(self):
         # Reset Gyro

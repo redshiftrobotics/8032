@@ -1,8 +1,8 @@
 {
   "lengthUnit": "Meter",
   "maxVelocity": 3.743381,
-  "maxAcceleration": 0.717,
-  "wheelBase": 0.305473061,
+  "maxAcceleration": 22.355086,
+  "wheelBase": 0.5842,
   "gameName": "Infinite Recharge",
   "outputDir": "../../robot/paths"
 }
