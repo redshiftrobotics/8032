@@ -175,8 +175,8 @@ class Robot(wpilib.TimedRobot):
         turn = self.ANGLE_CONSTANT * (-1.0 / 80.0) * angleDifference
 
         # Calculate target motor speeds (-1 to 1)
-        #leftSpeed = leftSpeed + turn
-        #rightSpeed = rightSpeed - turn
+        leftSpeed = leftSpeed + turn
+        rightSpeed = rightSpeed - turn
 
         self.leftMaster.set(ControlMode.PercentOutput, leftSpeed)
         self.rightMaster.set(ControlMode.PercentOutput, rightSpeed)

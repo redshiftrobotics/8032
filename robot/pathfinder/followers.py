@@ -1,4 +1,5 @@
 import math
+from pathfinder.utils import return_object
 
 class EncoderConfig:
     def __init__(self, initial_position=0, ticks_per_revolution=0, wheel_circumference=0, kp=0, ki=0, kd=0, kv=0, ka=0):
@@ -54,17 +55,20 @@ class EncoderFollower:
             self.heading = self.trajectory[-1].heading
             return 0.0
         else:
-            out = pathfinder_follow_encoder2(self.cfg, self, self.trajectory[self.segment], self.tlen, encoder_tick)
-
             time_passed = now-self.start_time
-            print(time_passed, now, self.trajectory[self.segment].t, self.segment)
 
-            while self.trajectory[self.segment].t < time_passed:
-                self.segment = self.segment + 1
+            if self.segment+1 < self.tlen:
+                while time_passed > self.trajectory[self.segment+1].t:
+                    self.segment = self.segment+1
 
-                if self.segment >= self.tlen:
-                    break
-
+                    if self.segment >= self.tlen-1:
+                        break
+            else:
+                self.segment = self.segment+1
+                print(self.segment, time_passed, 0.0)
+                return 0.0
+            
+            out = pathfinder_follow_encoder2(self.cfg, self, self.trajectory[self.segment], self.tlen, encoder_tick)
             return out
 
     def getHeading(self):
@@ -80,21 +84,15 @@ def pathfinder_follow_encoder2(c, follower, s, trajectory_length, encoder_tick):
     distance_covered = (float(encoder_tick) - float(c.initial_position)) /  float(c.ticks_per_revolution)
     distance_covered *= c.wheel_circumference
     
-    if (follower.segment < trajectory_length):
-        follower.finished = 0
-        error = s.position - distance_covered
-        feedback_value = (c.kp * error) + (c.kd * ((error - follower.last_error) / s.dt))
-        feedforward_value = ((c.kv * s.velocity) + (c.ka * s.acceleration))
-        calculated_value = feedback_value + feedforward_value
-        
-        follower.last_error = error
-        follower.heading = s.heading
-        follower.output = calculated_value
-        #follower.segment = follower.segment + 1
-        return calculated_value
-    else:
-        follower.finished = 1
-        return 0.0
+    error = s.position - distance_covered
+    feedback_value = (c.kp * error) + (c.kd * ((error - follower.last_error) / s.dt))
+    feedforward_value = ((c.kv * s.velocity) + (c.ka * s.acceleration))
+    calculated_value = feedback_value + feedforward_value
+    
+    follower.last_error = error
+    follower.heading = s.heading
+    follower.output = calculated_value
+    return calculated_value
    
 ##########################################################################################
 ##########################################################################################
