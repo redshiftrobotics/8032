@@ -3,6 +3,7 @@ import wpilib
 from networktables import NetworkTables
 from robotpy_ext.control.button_debouncer import ButtonDebouncer
 from ctre import WPI_TalonSRX, ControlMode, NeutralMode, FeedbackDevice, FollowerType, FeedbackDevice
+import math
 
 from intake import Intake
 from transit import Transit
@@ -27,23 +28,25 @@ class Robot(wpilib.TimedRobot):
         tv = self.limelight.getTV()
         tx = self.limelight.getTX()
         ta = self.limelight.getTA()
+        ts = self.limelight.getTS()
 
-        headingError = -tx
-        distanceError = targetDistance - self.limelight.getDistance(targetHeight)
         steeringAdjust = 0.0
         distanceAdjust = 0.0
 
-        if tv == 0.0:
-            steeringAdjust = 10.0 * self.aimKp
-        else:
+        if self.limelight.getTV() > 0.0:
+            headingError = -tx
+            distanceError = targetDistance - self.limelight.getDistance(targetHeight)
+
             if tx > 1.0: 
-                steeringAdjust = self.aimKp * headingError - self.minAimCommand
+                steeringAdjust = self.aimKp * headingError#- self.minAimCommand
             elif tx < 1.0:
-                steeringAdjust = self.aimKp * headingError + self.minAimCommand
+                steeringAdjust = self.aimKp * headingError#+ self.minAimCommand
 
-        distanceAdjust = self.distanceKp * distanceError
+            distanceAdjust = self.distanceKp * distanceError
+        else:
+            steeringAdjust = 10.0 * self.aimKp
 
-        return (steeringAdjust, distanceAdjust)
+        return distanceAdjust, steeringAdjust
 
     def robotInit(self):
         self.kSlotIdx = 0
@@ -66,10 +69,10 @@ class Robot(wpilib.TimedRobot):
         self.timer = wpilib.Timer()
 
         # Setup the compressor
-        self.compressor = wpilib.Compressor(61)
+        self.compressor = wpilib.Compressor(0)
 
         # Setup the intake
-        self.intake = Intake(7,61,1,0)
+        self.intake = Intake(7,0,1,0)
         self.intakeToggle = ButtonDebouncer(self.driverJoystick, 2)
         self.intakeCollect = 1
         self.intakeReverse = 5
@@ -81,7 +84,7 @@ class Robot(wpilib.TimedRobot):
         self.transitBackward = 4
 
         # Setup the hang
-        self.hang = Hang(0, 1, 0.1, -0.1, 0)
+        self.hang = Hang(8, 9, 0.1, -0.1, 0)
 
         # Setup Master motors for each side
         self.leftMaster = WPI_TalonSRX(4) # Front left Motor
@@ -90,7 +93,7 @@ class Robot(wpilib.TimedRobot):
         self.leftMaster.setNeutralMode(NeutralMode.Brake)
 
         self.rightMaster = WPI_TalonSRX(5) # Front right Motor
-        self.rightMaster.setInverted(False)
+        self.rightMaster.setInverted(True)
         self.rightMaster.setSensorPhase(False)
         self.rightMaster.setNeutralMode(NeutralMode.Brake)
 
@@ -101,7 +104,7 @@ class Robot(wpilib.TimedRobot):
         self.leftAlt.setNeutralMode(NeutralMode.Brake)
 
         self.rightAlt = WPI_TalonSRX(3) # Back right motor
-        self.rightAlt.setInverted(False)
+        self.rightAlt.setInverted(True)
         self.rightAlt.follow(self.rightMaster)
         self.rightAlt.setNeutralMode(NeutralMode.Brake)
 
@@ -124,62 +127,67 @@ class Robot(wpilib.TimedRobot):
         self.kD = 0
         self.kI = 0
 
-        self.leftMaster.config_kP(self.kP)
-        self.leftMaster.config_kD(self.kD)
-        self.leftMaster.config_kI(self.kI)
+        self.leftMaster.config_kP(self.kPIDLoopIdx,self.kP,self.kTimeoutMs)
+        self.leftMaster.config_kD(self.kPIDLoopIdx,self.kD,self.kTimeoutMs)
+        self.leftMaster.config_kI(self.kPIDLoopIdx,self.kI,self.kTimeoutMs)
 
-        self.rightMaster.config_kP(self.kP)
-        self.rightMaster.config_kD(self.kD)
-        self.rightMaster.config_kI(self.kI)
+        self.rightMaster.config_kP(self.kPIDLoopIdx,self.kP,self.kTimeoutMs)
+        self.rightMaster.config_kD(self.kPIDLoopIdx,self.kD,self.kTimeoutMs)
+        self.rightMaster.config_kI(self.kPIDLoopIdx,self.kI,self.kTimeoutMs)
 
         # Setup Differential Drive
         self.drive = Drive(self.leftMaster, self.rightMaster, self.rightAlt, self.leftAlt)
 
         # Setup Limelight
         self.limelight = LimeLight()
-        self.targetDistance = 4.0
-        self.targetBottomHeight = 81.0 # in
+        self.targetDistance = 15.0 # in
+        self.targetBottomHeight = 89.5 # in
         # TODO: Tune limelight PID
-        self.aimKp = 0.05
-        self.distanceKp = 0.25
+        self.aimKp = 0.02
+        self.skewKp = 0.002
+        self.distanceKp = 0.005
         self.minAimCommand = 0.05
-        # TODO: find accpetable error
-        self.distanceThreshold = 0.1
-        self.angleThreshold = 1
+        self.distanceThreshold = 20
+        self.angleThreshold = 5
 
         # Setup auto parameters
         self.waitTime = 1.0
-        # TODO: find optimal deposit time
-        self.depositTime = 2.0
-        # TODO: find correct distances
-        self.leftLeaveDist = self.ENCODER_CONSTANT * 10 # in -> encoder ticks
-        self.rightLeaveDist = self.ENCODER_CONSTANT * 40 # in -> encoder ticks
+        self.depositTime = 0.5
+        #self.leftLeaveDist = 10_000 # encoder ticks
+        #self.rightLeaveDist = 5_000# encoder ticks
+        self.leaveTime = 1.5
         # TODO: find acceptable error
         self.leaveThreshold = 50
 
     def autonomousInit(self):
         """Called only at the beginning of autonomous mode."""
         # Setup auto state
-        self.autoState = "wait"
-        self.time.reset()
+        self.autoState = "align"
+        self.timer.reset()
+        self.timer.start()
+
+        # Setup Encoders
+        self.leftMaster.setSelectedSensorPosition(0, self.kPIDLoopIdx, self.kTimeoutMs)
+        self.rightMaster.setSelectedSensorPosition(0, self.kPIDLoopIdx, self.kTimeoutMs)
 
         # Turn off the limelight LED
-        self.limelight.setLedMode(LIMELIGHT_LED_OFF)
+        self.limelight.setLedMode(LIMELIGHT_LED_ON)
+        self.missedFrames = 0
 
         # Setup the compressor
-        self.compressor.start()
+        self.compressor.stop()
         self.compressor.clearAllPCMStickyFaults()
 
     def autonomousPeriodic(self):
         """Called every 20ms in autonomous mode."""
-        #self.sd.putNumber("tx", self.limelight.getTX())
-        #self.sd.putNumber("ta", self.limelight.getTA())
-        #self.sd.putNumber("tv", self.limelight.getTV())
-        #self.sd.putNumber("ty", self.limelight.getTY())
-        #dist = self.limelight.getDistance(self.targetBottomHeight)
-        #if dist:
-        #    self.sd.putNumber("dist", dist)
-        #self.align(self.targetDistance, self.targetBottomHeight)
+        self.sd.putNumber("ty", self.limelight.getTY())
+        self.sd.putNumber("tx", self.limelight.getTX())
+        self.sd.putNumber("tv", self.limelight.getTV())
+        self.sd.putNumber("ts", self.limelight.getTS()*self.skewKp)
+
+        dist = self.limelight.getDistance(self.targetBottomHeight)
+        if dist:
+            self.sd.putNumber("dist", dist)
 
         # Stop all unused mechanisms
         self.drive.stop()
@@ -194,48 +202,63 @@ class Robot(wpilib.TimedRobot):
                 self.autoState = "align"
                 self.limelight.setLedMode(LIMELIGHT_LED_ON)
         elif self.autoState == "align":
-            distError = self.limelight.getDistance(self.targetBottomHeight) - self.targetDistance
-            angleError = self.limelight.getTX()
+            if self.limelight.getTV() > 0:
+                distError = self.limelight.getDistance(self.targetBottomHeight) - self.targetDistance
+                angleError = self.limelight.getTX()
 
-            # Check if the robot is aligned
-            if (distError < self.distanceThreshold) and (angleError < self.angleThreshold):
-                self.autoState == "deposit"
+                # Check if the robot is aligned
+                if ((distError < self.distanceThreshold) and (angleError < self.angleThreshold)):
+                    self.limelight.setLedMode(LIMELIGHT_LED_OFF)
+                    self.timer.reset()
+                    self.autoState = "deposit"
+                # If not continue aligning
+                else:
+                    x, t = self.align(self.targetDistance, self.targetBottomHeight)
+                    self.drive.arcadeDrive(x, t, ControlMode.PercentOutput)
+            else:
+                self.missedFrames += 1
+            if (self.missedFrames >= 25):
                 self.limelight.setLedMode(LIMELIGHT_LED_OFF)
                 self.timer.reset()
-            # If not continue aligning
-            else:
-                x, t = self.align(self.targetDistance, self.targetBottomHeight)
-                self.drive.arcadeDrive(x, t)
+                self.autoState = "deposit"
+        
         elif self.autoState == "deposit":
             if self.timer.get() < self.depositTime:
                 self.transit.forward()
             else:
-                self.leftMaster.setSelectedSensorPosition(0, self.kPIDLoopIdx, self.kTimeoutMs)
-                self.rightMaster.setSelectedSensorPosition(0, self.kPIDLoopIdx, self.kTimeoutMs)
+                #self.leftMaster.setSelectedSensorPosition(0, self.kPIDLoopIdx, self.kTimeoutMs)
+                #self.rightMaster.setSelectedSensorPosition(0, self.kPIDLoopIdx, self.kTimeoutMs)
+                self.timer.reset()
                 self.autoState = "leave"
         elif self.autoState == "leave":
-            leftError = self.leftMaster.getSelectedSensorPosition() - self.leftLeaveDist
-            rightError = self.rightMaster.getSelectedSensorPosition() - self.rightLeaveDist
+            #leftError = self.leftMaster.getSelectedSensorPosition() - self.leftLeaveDist
+            #rightError = self.rightMaster.getSelectedSensorPosition() - self.rightLeaveDist
 
             # Check if the robot has gone the correct distance
-            if (leftError < self.leaveThreshold) and (rightError < self.leaveThreshold):
-                self.autoState == "stop"
+            #if (abs(leftError) < self.leaveThreshold) and (abs(rightError) < self.leaveThreshold):
+            if self.timer.get() < self.leaveTime:
+                self.drive.tankDrive(0.2, 0.6, ControlMode.PercentOutput)
             # If not continue moving
             else:
-                self.drive.tankDrive(self.leftLeaveDist, self.rightLeaveDist, ControlMode.Position)
+                self.autoState == "stop"
+        '''
         elif self.autoState == "stop":
             self.drive.stop()
-        
+        '''
         self.drive.update()
-        self.intake.update()
+        #self.intake.update()
         self.transit.update()
         #self.hang.update()
-
+        self.sd.putString("state", self.autoState)
+        self.sd.putNumber("missed frames", self.missedFrames)
+        self.sd.putNumber("R ENC", self.rightMaster.getSelectedSensorPosition())
+        self.sd.putNumber("L ENC", self.leftMaster.getSelectedSensorPosition())
+        self.sd.putNumber("timer", self.timer.get())
 
     def teleopInit(self):
         """Called only at the beginning of teleop mode."""
         # Setup the compressor
-        self.compressor.start()
+        self.compressor.stop()
         self.compressor.clearAllPCMStickyFaults()
 
         # Turn off the limelight LED
@@ -243,6 +266,19 @@ class Robot(wpilib.TimedRobot):
 
     def teleopPeriodic(self):
         """Called every 20ms in autonomous mode."""
+
+        self.sd.putNumber("ts", self.limelight.getTS()*self.skewKp)
+        self.sd.putNumber("ty", self.limelight.getTY())
+        self.sd.putNumber("tx", self.limelight.getTX())
+        self.sd.putNumber("tv", self.limelight.getTV())
+
+        dist = self.limelight.getDistance(self.targetBottomHeight)
+        if dist:
+            self.sd.putNumber("dist", dist)
+        if self.limelight.getTV():
+            xAxis, tAxis = self.align(self.targetDistance, self.targetBottomHeight)
+            self.sd.putNumber("x", xAxis)
+            self.sd.putNumber("t", tAxis)
 
         # Get max speed
         self.speed = (-self.driverJoystick.getRawAxis(3) + 1)/2
@@ -277,9 +313,9 @@ class Robot(wpilib.TimedRobot):
             #self.hang.stop()
 
         # Get turn and movement speeds
-        self.xAxis = self.threshold(self.driverJoystick.getRawAxis(2), 0.05) * self.xSpeed * self.speed # * pow((1-abs(self.tAxis)),0.25)
-        self.tAxis = self.threshold(self.driverJoystick.getRawAxis(1), 0.05) * self.tSpeed * self.speed # * (1-abs(self.xAxis)) * self.turnSlowdown
-        self.drive.arcadeDrive(self.xAxis, self.tAxis, ControlMode.PercentOutput)
+        tAxis = -self.threshold(self.driverJoystick.getRawAxis(2), 0.05) * self.xSpeed * self.speed # * pow((1-abs(tAxis)),0.25)
+        xAxis = self.threshold(self.driverJoystick.getRawAxis(1), 0.05) * self.tSpeed * self.speed # * (1-abs(xAxis)) * self.turnSlowdown
+        self.drive.arcadeDrive(xAxis, tAxis, ControlMode.PercentOutput)
 
         self.drive.update()
         self.intake.update()

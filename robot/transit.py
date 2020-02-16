@@ -12,11 +12,11 @@ class Transit:
 
     def forward(self):
         """Move balls away from the intake"""
-        self.transit_speed = 1 * self.max_speed
+        self.transit_speed = -1 * self.max_speed
 
     def backward(self):
         """Move balls towards the intake"""
-        self.transit_speed = -1 * self.max_speed
+        self.transit_speed = 1 * self.max_speed
     
     def stop(self):
         """Stop the transit"""

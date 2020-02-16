@@ -15,12 +15,12 @@ class Drive:
         self.controlMode = ControlMode.PercentOutput
 
 
-    def arcadeDrive(self, xAxis, tAxis, controlMode: ControlMode):
+    def arcadeDrive(self, xAxis, tAxis, controlMode):
         self.leftSpeed = xAxis + tAxis
         self.rightSpeed = xAxis - tAxis
         self.controlMode = controlMode
 
-    def tankDrive(self, leftAxis, rightAxis, controlMode: ControlMode):
+    def tankDrive(self, leftAxis, rightAxis, controlMode):
         self.leftSpeed = leftAxis
         self.rightSpeed = rightAxis
         self.controlMode = controlMode
