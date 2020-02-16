@@ -36,6 +36,10 @@ class Intake:
     def speed(self, speed):
         """Sets the intake speed"""
         self.collect_speed = speed
+    
+    def stop(self):
+        """Stops the intake"""
+        self.collect_speed = 0
 
     def update(self):
         """Updates the values if they are changed"""
