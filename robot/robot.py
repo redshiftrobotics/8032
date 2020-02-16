@@ -163,8 +163,12 @@ class Robot(wpilib.TimedRobot):
         self.autoState = "wait"
         self.time.reset()
 
-        # Setup the limelight
+        # Turn off the limelight LED
         self.limelight.setLedMode(LIMELIGHT_LED_OFF)
+
+        # Setup the compressor
+        self.compressor.start()
+        self.compressor.clearAllPCMStickyFaults()
 
     def autonomousPeriodic(self):
         """Called every 20ms in autonomous mode."""
@@ -230,7 +234,11 @@ class Robot(wpilib.TimedRobot):
 
     def teleopInit(self):
         """Called only at the beginning of teleop mode."""
+        # Setup the compressor
         self.compressor.start()
+        self.compressor.clearAllPCMStickyFaults()
+
+        # Turn off the limelight LED
         self.limelight.setLedMode(LIMELIGHT_LED_ON)
 
     def teleopPeriodic(self):
