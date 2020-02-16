@@ -156,7 +156,8 @@ class Robot(wpilib.TimedRobot):
         self.moveTime = 1.0
         #self.leftLeaveDist = 10_000 # encoder ticks
         #self.rightLeaveDist = 5_000# encoder ticks
-        self.leaveTime = 1.5
+        self.leaveTime = 0.7
+        self.backwardsTime = 1.0
         self.leaveThreshold = 50
 
     def autonomousInit(self):
@@ -235,9 +236,16 @@ class Robot(wpilib.TimedRobot):
                 self.autoState = "leave"
         elif self.autoState == "leave":
             if self.timer.get() < self.leaveTime:
-                self.drive.tankDrive(0.2, 0.6, ControlMode.PercentOutput)
+                self.drive.tankDrive(0.33, 1.0, ControlMode.PercentOutput)
             else:
-                self.autoState == "stop"
+                self.autoState = "back"
+                self.timer.reset()
+        elif self.autoState == "back":
+            if self.timer.get() < self.backwardsTime:
+                self.drive.arcadeDrive(0.5, 0, ControlMode.PercentOutput)
+            else:
+                self.timer.reset()
+                self.autoState = "stop"
         elif self.autoState == "stop":
             self.drive.stop()
         
