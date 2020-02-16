@@ -26,7 +26,7 @@ class Robot(wpilib.TimedRobot):
     def align(self, targetDistance, targetHeight):
         """Generates turn and move values based on a target distance and height"""
         tv = self.limelight.getTV()
-        tx = self.limelight.getTX()
+        tx = self.limelight.getTX() + 5
         ta = self.limelight.getTA()
         ts = self.limelight.getTS()
 
@@ -152,17 +152,17 @@ class Robot(wpilib.TimedRobot):
 
         # Setup auto parameters
         self.waitTime = 1.0
-        self.depositTime = 0.5
+        self.depositTime = 0.7
+        self.moveTime = 1.0
         #self.leftLeaveDist = 10_000 # encoder ticks
         #self.rightLeaveDist = 5_000# encoder ticks
         self.leaveTime = 1.5
-        # TODO: find acceptable error
         self.leaveThreshold = 50
 
     def autonomousInit(self):
         """Called only at the beginning of autonomous mode."""
         # Setup auto state
-        self.autoState = "align"
+        self.autoState = "wait"
         self.timer.reset()
         self.timer.start()
 
@@ -210,41 +210,37 @@ class Robot(wpilib.TimedRobot):
                 if ((distError < self.distanceThreshold) and (angleError < self.angleThreshold)):
                     self.limelight.setLedMode(LIMELIGHT_LED_OFF)
                     self.timer.reset()
-                    self.autoState = "deposit"
+                    self.autoState = "move"
                 # If not continue aligning
                 else:
                     x, t = self.align(self.targetDistance, self.targetBottomHeight)
                     self.drive.arcadeDrive(x, t, ControlMode.PercentOutput)
             else:
                 self.missedFrames += 1
-            if (self.missedFrames >= 25):
+            if (self.missedFrames >= 75):
                 self.limelight.setLedMode(LIMELIGHT_LED_OFF)
                 self.timer.reset()
+                self.autoState = "move"
+        elif self.autoState == "move":
+            if self.timer.get() < self.moveTime:
+                self.drive.arcadeDrive(-0.5, 0, ControlMode.PercentOutput)
+            else:
+                self.timer.reset()
                 self.autoState = "deposit"
-        
         elif self.autoState == "deposit":
             if self.timer.get() < self.depositTime:
                 self.transit.forward()
             else:
-                #self.leftMaster.setSelectedSensorPosition(0, self.kPIDLoopIdx, self.kTimeoutMs)
-                #self.rightMaster.setSelectedSensorPosition(0, self.kPIDLoopIdx, self.kTimeoutMs)
                 self.timer.reset()
                 self.autoState = "leave"
         elif self.autoState == "leave":
-            #leftError = self.leftMaster.getSelectedSensorPosition() - self.leftLeaveDist
-            #rightError = self.rightMaster.getSelectedSensorPosition() - self.rightLeaveDist
-
-            # Check if the robot has gone the correct distance
-            #if (abs(leftError) < self.leaveThreshold) and (abs(rightError) < self.leaveThreshold):
             if self.timer.get() < self.leaveTime:
                 self.drive.tankDrive(0.2, 0.6, ControlMode.PercentOutput)
-            # If not continue moving
             else:
                 self.autoState == "stop"
-        '''
         elif self.autoState == "stop":
             self.drive.stop()
-        '''
+        
         self.drive.update()
         #self.intake.update()
         self.transit.update()
