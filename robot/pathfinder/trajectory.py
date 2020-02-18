@@ -95,7 +95,7 @@ def pf_trajectory_fromSecondOrderFilter(filter_1_l, filter_2_l, dt, u, v, impuls
         t[i].jerk = (t[i].acceleration - last_section.acceleration) / dt
         t[i].dt = dt
 
-        last_section = t[i]
+        last_section = copy.copy(t[i])
 
         t[i] = copy.copy(t[i])
     return 0

@@ -2,12 +2,12 @@ import pathfinder as pf
 import math
 
 
-# points = [pf.Waypoint(0,0,0),
-#             pf.Waypoint(2, 0, 0)]
+points = [pf.Waypoint(0,0,0),
+          pf.Waypoint(2, 0, 0)]
 
-# trajectory = pf.generator.generate_trajectory(points, pf.hermite.pf_fit_hermite_quintic, pf.SAMPLES_FAST, 0.02, 3.743381, 22.355086, 120.0)
+trajectory = pf.generator.generate_trajectory(points, pf.hermite.pf_fit_hermite_cubic, pf.SAMPLES_FAST, 0.02, 3.743381, 22.355086, 120.0)
+#trajectory = pf.read_from_pathweaver("Test", __file__)
 
-trajectory = pf.read_from_pathweaver("Test", __file__)
 left, right = pf.modifiers.tank(trajectory, 1.0)
 
 # -------------------------------------------------------------------------------------------------------------------------------------------#
