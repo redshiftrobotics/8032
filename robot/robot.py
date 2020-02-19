@@ -75,7 +75,8 @@ class Robot(wpilib.TimedRobot):
         # Setup the intake
         self.intake = Intake(7,0,1,0)
         self.intakeToggle = ButtonDebouncer(self.operatorJoystick, 2)
-        self.intakeCollectToggle = ButtonDebouncer(self.operatorJoystick, 2)
+        self.intakeCollectToggle = ButtonDebouncer(self.operatorJoystick, 3)
+        self.intakeCollectToggleOn = False
         self.intakeReverse = 5
         self.baseIntakeSpeed = 0.4
 
@@ -266,32 +267,34 @@ class Robot(wpilib.TimedRobot):
 
     def teleopPeriodic(self):
         """Called every 20ms in autonomous mode."""
-        # Get max speed
-        self.speed = (-self.driverJoystick.getRawAxis(3) + 1)/2
-
         # Extend the intake if needed
         if self.intakeToggle.get():
             self.intake.toggle()
         
-        # Turn the intake on or off
+        # Keep track of the intake toggle state
         if self.intakeCollectToggle.get():
-            # Set the speed of the intake
+            self.intakeCollectToggleOn = not self.intakeCollectToggleOn
+        
+        # Update the speed of the intake based on whether the forward toggle is on, or the back button is pressed
+        if self.operatorJoystick.getRawButton(self.intakeReverse):
+            self.intake.speed(-self.baseIntakeSpeed)
+            self.intake.enable_collect()
+        elif self.intakeCollectToggleOn:
             robotDirection = self.leftMaster.get() + self.rightMaster.get()
             if robotDirection < 0:
                 self.intake.speed(self.baseIntakeSpeed+0.5)
             else:
                 self.intake.speed(self.baseIntakeSpeed)
-            self.intake.toggle_collect()
-        intake_already_enabled = self.intake.get_intake_enabled()
-        if self.operatorJoystick.getRawButton(self.intakeReverse):
-            self.intake.speed(-self.baseIntakeSpeed)
             self.intake.enable_collect()
-        elif not intake_already_enabled:
+        else:
             self.intake.disable_collect()
         
         # Update the transit speed
-        self.transit.speed(self.threshold(self.driverJoystick.getRawAxis(2), 0.05))
+        self.transit.speed(self.threshold(self.operatorJoystick.getRawAxis(2), 0.05))
 
+        # Get max speed
+        self.speed = (-self.driverJoystick.getRawAxis(3) + 1)/2
+        
         # Get turn and movement speeds
         tAxis = -self.threshold(self.driverJoystick.getRawAxis(2), 0.05) * self.xSpeed * self.speed
         xAxis = self.threshold(self.driverJoystick.getRawAxis(1), 0.05) * self.tSpeed * self.speed
