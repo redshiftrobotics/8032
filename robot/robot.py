@@ -62,8 +62,9 @@ class Robot(wpilib.TimedRobot):
         # Smart Dashboard
         self.sd = NetworkTables.getTable('SmartDashboard')
 
-        # joystick 1 on the driver station
+        # joystick 0 on the driver station
         self.driverJoystick = wpilib.Joystick(0)
+        self.operatorJoystick = wpilib.Joystick(1)
         
         # Create a simple timer
         self.timer = wpilib.Timer()
@@ -73,15 +74,14 @@ class Robot(wpilib.TimedRobot):
 
         # Setup the intake
         self.intake = Intake(7,0,1,0)
-        self.intakeToggle = ButtonDebouncer(self.driverJoystick, 2)
-        self.intakeCollect = 1
+        self.intakeToggle = ButtonDebouncer(self.operatorJoystick, 2)
+        self.intakeCollectToggle = ButtonDebouncer(self.operatorJoystick, 2)
         self.intakeReverse = 5
         self.baseIntakeSpeed = 0.4
 
         # Setup the transit
         self.transit = Transit(6)
-        self.transitForward = 3
-        self.transitBackward = 4
+        self.transitAxis = 0
 
         # Setup the hang
         self.hang = Hang(8, 9, 0.1, -0.1, 0)
@@ -144,7 +144,6 @@ class Robot(wpilib.TimedRobot):
         self.targetBottomHeight = 89.5 # in
         # TODO: Tune limelight PID
         self.aimKp = 0.02
-        self.skewKp = 0.002
         self.distanceKp = 0.005
         self.minAimCommand = 0.05
         self.distanceThreshold = 20
@@ -176,15 +175,13 @@ class Robot(wpilib.TimedRobot):
         self.missedFrames = 0
 
         # Setup the compressor
-        self.compressor.stop()
-        self.compressor.clearAllPCMStickyFaults()
+        self.compressor.start()
 
     def autonomousPeriodic(self):
         """Called every 20ms in autonomous mode."""
         self.sd.putNumber("ty", self.limelight.getTY())
         self.sd.putNumber("tx", self.limelight.getTX())
         self.sd.putNumber("tv", self.limelight.getTV())
-        self.sd.putNumber("ts", self.limelight.getTS()*self.skewKp)
 
         dist = self.limelight.getDistance(self.targetBottomHeight)
         if dist:
@@ -262,63 +259,42 @@ class Robot(wpilib.TimedRobot):
     def teleopInit(self):
         """Called only at the beginning of teleop mode."""
         # Setup the compressor
-        self.compressor.stop()
-        self.compressor.clearAllPCMStickyFaults()
+        self.compressor.start()
 
         # Turn off the limelight LED
         self.limelight.setLedMode(LIMELIGHT_LED_ON)
 
     def teleopPeriodic(self):
         """Called every 20ms in autonomous mode."""
-
-        self.sd.putNumber("ts", self.limelight.getTS()*self.skewKp)
-        self.sd.putNumber("ty", self.limelight.getTY())
-        self.sd.putNumber("tx", self.limelight.getTX())
-        self.sd.putNumber("tv", self.limelight.getTV())
-
-        dist = self.limelight.getDistance(self.targetBottomHeight)
-        if dist:
-            self.sd.putNumber("dist", dist)
-        if self.limelight.getTV():
-            xAxis, tAxis = self.align(self.targetDistance, self.targetBottomHeight)
-            self.sd.putNumber("x", xAxis)
-            self.sd.putNumber("t", tAxis)
-
         # Get max speed
         self.speed = (-self.driverJoystick.getRawAxis(3) + 1)/2
 
         # Extend the intake if needed
         if self.intakeToggle.get():
             self.intake.toggle()
-
-        # Set the speed of the intake
-        if self.driverJoystick.getRawButton(self.intakeCollect):
+        
+        # Turn the intake on or off
+        if self.intakeCollectToggle.get():
+            # Set the speed of the intake
             robotDirection = self.leftMaster.get() + self.rightMaster.get()
-            
-            # Check if the robot is moving forwards or backwards
             if robotDirection < 0:
                 self.intake.speed(self.baseIntakeSpeed+0.5)
             else:
                 self.intake.speed(self.baseIntakeSpeed)
-        elif self.driverJoystick.getRawButton(self.intakeReverse):
+            self.intake.toggle_collect()
+        intake_already_enabled = self.intake.get_intake_enabled()
+        if self.operatorJoystick.getRawButton(self.intakeReverse):
             self.intake.speed(-self.baseIntakeSpeed)
-        else:
-            self.intake.speed(0)
+            self.intake.enable_collect()
+        elif not intake_already_enabled:
+            self.intake.disable_collect()
         
-        # Check update the transit state
-        if self.driverJoystick.getRawButton(self.transitForward):
-            self.transit.forward()
-            #self.hang.extend()
-        elif self.driverJoystick.getRawButton(self.transitBackward):
-            self.transit.backward()
-            #self.hang.retract()
-        else:
-            self.transit.stop()
-            #self.hang.stop()
+        # Update the transit speed
+        self.transit.speed(self.threshold(self.driverJoystick.getRawAxis(2), 0.05))
 
         # Get turn and movement speeds
-        tAxis = -self.threshold(self.driverJoystick.getRawAxis(2), 0.05) * self.xSpeed * self.speed # * pow((1-abs(tAxis)),0.25)
-        xAxis = self.threshold(self.driverJoystick.getRawAxis(1), 0.05) * self.tSpeed * self.speed # * (1-abs(xAxis)) * self.turnSlowdown
+        tAxis = -self.threshold(self.driverJoystick.getRawAxis(2), 0.05) * self.xSpeed * self.speed
+        xAxis = self.threshold(self.driverJoystick.getRawAxis(1), 0.05) * self.tSpeed * self.speed
         self.drive.arcadeDrive(xAxis, tAxis, ControlMode.PercentOutput)
 
         self.drive.update()

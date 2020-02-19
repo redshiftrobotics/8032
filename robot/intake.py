@@ -15,6 +15,7 @@ class Intake:
         self.piston_target = self.piston.Value.kReverse
 
         self.state = EXTENDED
+        self.intake_enabled = False
         
     def extend(self):
         """Extends pistons"""
@@ -37,15 +38,34 @@ class Intake:
         """Sets the intake speed"""
         self.collect_speed = speed
     
+    def enable_collect(self):
+        """Runs intake"""
+        self.intake_enabled = True
+    
+    def disable_collect(self):
+        """Stops intake"""
+        self.intake_enabled = False
+    
+    def toggle_collect(self):
+        """Toggles whether the intake is running"""
+        self.intake_enabled = not self.intake_enabled
+        
     def stop(self):
         """Stops the intake"""
         self.collect_speed = 0
+    
+    def get_intake_enabled(self):
+        """Returns whether the intake is enabled"""
+        return self.intake_enabled
 
     def update(self):
         """Updates the values if they are changed"""
         if self.piston.get() != self.piston_target:
             self.piston.set(self.piston_target)
 
-        self.intake_motor.set(ControlMode.PercentOutput, self.collect_speed)
+        if self.intake_enabled:
+            self.intake_motor.set(ControlMode.PercentOutput, self.collect_speed)
+        else:
+            self.intake_motor.set(ControlMode.PercentOutput, 0)
 
         
