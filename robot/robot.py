@@ -2,14 +2,19 @@
 import wpilib
 from wpilib import ADXRS450_Gyro
 from wpilib.drive import DifferentialDrive
-from networktables import NetworkTables
+if wpilib.RobotBase.isSimulation():
+    is_sim = True
+    import physics
+    import time
+else:
+    is_sim = False
 
+from networktables import NetworkTables
 from robotpy_ext.control.button_debouncer import ButtonDebouncer
 from ctre import WPI_TalonSRX, ControlMode, NeutralMode, FeedbackDevice
 
 import pathfinder as pf
 import math
-
 import time
 
 class Robot(wpilib.TimedRobot):
@@ -108,6 +113,19 @@ class Robot(wpilib.TimedRobot):
 
         # Setup Gyro
         self.gyro = ADXRS450_Gyro()
+
+        # Setup the simulation
+        if is_sim:
+            self.physics = physics.PhysicsEngine()
+            self.last_tm = time.time()
+    
+    if is_sim:
+        # TODO: this needs to be builtin
+        def robotPeriodic(self):
+            now = time.time()
+            tm_diff = now - self.last_tm
+            self.last_tm = now
+            self.physics.update_sim(now, tm_diff)
 
     def autonomousInit(self):
         """Called only at the beginning of autonomous mode."""
