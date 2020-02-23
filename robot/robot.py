@@ -26,7 +26,7 @@ class Robot(wpilib.TimedRobot):
     MAX_ACCELERATION = 22.355086
     KS = 1.08
     DT = 0.02
-    ANGLE_CONSTANT = 1
+    ANGLE_CONSTANT = 0.01
     ENCODER_CONSTANT = (1/ENCODER_COUNTS_PER_REV) * WHEEL_CIRCUMFERENCE
 
     def threshhold(self, value, limit):
@@ -118,6 +118,9 @@ class Robot(wpilib.TimedRobot):
         if is_sim:
             self.physics = physics.PhysicsEngine()
             self.last_tm = time.time()
+            self.left_motor_sim = wpilib.Talon(1)
+            self.right_motor_sim = wpilib.Talon(2)
+            self.gyro_sim = wpilib.AnalogInput(2)
     
     if is_sim:
         # TODO: this needs to be builtin
@@ -136,24 +139,23 @@ class Robot(wpilib.TimedRobot):
         self.leftMaster.setSelectedSensorPosition(0)
         self.rightMaster.setSelectedSensorPosition(0)
 
+        # NOTE: This is for reading a trajectory exported by PathWeaver
         # Read trajectory from file
-        path_name = "Initiation Line"
+        path_name = "5 Ball Auto"
         trajectory = pf.read_from_pathweaver(path_name, __file__)
 
-        # NOTE: This is the old way using pf's trajectory generator.
-        #   It is broken and using PathWeaver is highly recommended
-
+        # NOTE: This is for generating a custom trajectory
         # Set up the trajectory
         # points = [pf.Waypoint(0,0,0),
-        #           pf.Waypoint(10, 0, 0)]
+        #           pf.Waypoint(1, 1, 0)]
 
         # trajectory = pf.generator.generate_trajectory(
         #     points,
         #     pf.hermite.pf_fit_hermite_cubic,
         #     pf.SAMPLES_FAST,
         #     dt=self.DT, #self.getPeriod(),
-        #     max_velocity=self.KV,
-        #     max_acceleration=self.KA,
+        #     max_velocity=self.MAX_VELOCITY,
+        #     max_acceleration=self.MAX_ACCELERATION,
         #     max_jerk=60
         # )
 
@@ -187,10 +189,12 @@ class Robot(wpilib.TimedRobot):
 
         # Calculate target rotation using the gyro and pathfinding
         gyro_heading = -self.gyro.getAngle()
+        if is_sim:
+            gyro_heading = self.gyro_sim.getVoltage()
         desired_heading = pf.r2d(self.leftTrajectoryFollower.getHeading())
         
         angleDifference = pf.bound_angle(desired_heading - gyro_heading)
-        turn = self.ANGLE_CONSTANT * (-1.0 / 80.0) * angleDifference
+        turn = self.ANGLE_CONSTANT * angleDifference
 
         # Calculate target motor speeds (-1 to 1)
         leftSpeed = leftSpeed + turn
@@ -198,6 +202,10 @@ class Robot(wpilib.TimedRobot):
 
         self.leftMaster.set(ControlMode.PercentOutput, leftSpeed)
         self.rightMaster.set(ControlMode.PercentOutput, rightSpeed)
+
+        if is_sim:
+            self.left_motor_sim.set(-leftSpeed)
+            self.right_motor_sim.set(rightSpeed)
         
         # Convert percent speed into encoder_ticks/100ms
         #leftVelocity = leftSpeed/(self.ENCODER_CONSTANT*10)

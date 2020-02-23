@@ -67,20 +67,16 @@ class PhysicsEngine(object):
     """
 
     def __init__(self):
-
         self.field = Field()
+        self.field.x = 1
+        self.field.y = 5.5
 
         # Motors
         self.l_motor = hal.simulation.PWMSim(1)
         self.r_motor = hal.simulation.PWMSim(2)
+        self.speed_mult = 1/2.7
 
-        self.dio1 = hal.simulation.DIOSim(1)
-        self.dio2 = hal.simulation.DIOSim(2)
-        self.ain2 = hal.simulation.AnalogInSim(2)
-
-        self.motor = hal.simulation.PWMSim(4)
-
-        self.position = 0
+        self.sim_gyro = hal.simulation.AnalogInSim(2)
 
         # Change these parameters to fit your robot!
         bumper_width = 3.25 * units.inch
@@ -88,8 +84,8 @@ class PhysicsEngine(object):
         # fmt: off
         self.drivetrain = tankmodel.TankModel.theory(
             motor_cfgs.MOTOR_CFG_CIM,           # motor configuration
-            110 * units.lbs,                    # robot mass
-            10.71,                              # drivetrain gear ratio
+            30 * units.lbs,                    # robot mass
+            10.75,                              # drivetrain gear ratio
             2,                                  # motors per side
             22 * units.inch,                    # robot wheelbase
             23 * units.inch + bumper_width * 2, # robot width
@@ -109,29 +105,11 @@ class PhysicsEngine(object):
         """
 
         # Simulate the drivetrain
-        l_motor = self.l_motor.getSpeed()
-        r_motor = self.r_motor.getSpeed()
+        l_motor = self.l_motor.getSpeed()*self.speed_mult
+        r_motor = self.r_motor.getSpeed()*self.speed_mult
 
         x, y, angle = self.drivetrain.get_distance(l_motor, r_motor, tm_diff)
         self.field.distance_drive(x, y, angle)
 
-        # update position (use tm_diff so the rate is constant)
-        self.position += self.motor.getSpeed() * tm_diff * 3
-
-        # update limit switches based on position
-        if self.position <= 0:
-            switch1 = True
-            switch2 = False
-
-        elif self.position > 10:
-            switch1 = False
-            switch2 = True
-
-        else:
-            switch1 = False
-            switch2 = False
-
-        # set values here
-        self.dio1.setValue(switch1)
-        self.dio2.setValue(switch2)
-        self.ain2.setVoltage(self.position)
+        # Update the gyro
+        self.sim_gyro.setVoltage(self.field.frot.get())

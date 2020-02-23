@@ -2,13 +2,13 @@ import pathfinder as pf
 import math
 
 
-points = [pf.Waypoint(0,0,0),
-          pf.Waypoint(2, 0, 0)]
+points = [pf.Waypoint(3,-3,0),
+          pf.Waypoint(4, -2, 0)]
 
 trajectory = pf.generator.generate_trajectory(points, pf.hermite.pf_fit_hermite_cubic, pf.SAMPLES_FAST, 0.02, 3.743381, 22.355086, 120.0)
-#trajectory = pf.read_from_pathweaver("Test", __file__)
+#trajectory = pf.read_from_pathweaver("Move to Trench", __file__)
 
-left, right = pf.modifiers.tank(trajectory, 1.0)
+left, right = pf.modifiers.tank(trajectory, 0.305473061)
 
 # -------------------------------------------------------------------------------------------------------------------------------------------#
 # Plot the path
@@ -20,40 +20,40 @@ fig, ax = plt.subplots(nrows=4, ncols=1)
 # ax[0].scatter(mx, my, c="r")
 
 # plot the main trajectory
-x, y = zip(*[(seg.y, seg.x) for seg in trajectory])
+x, y = zip(*[(seg.x, seg.y) for seg in trajectory])
 ax[0].plot(x, y, color="blue")
+# for i in range(0, len(trajectory), int(0.5 / 0.02)):
+#     ax[0].annotate(
+#         "t=%.2f" % (i * 0.02,),
+#         xy=(x[i], y[i]),
+#         xytext=(-20, 20),
+#         textcoords="offset points",
+#         arrowprops=dict(arrowstyle="-", connectionstyle="arc3,rad=0"),
+#     )
 
-# annotate with time
-for i in range(0, len(trajectory), int(0.5 / 0.02)):
-    ax[0].annotate(
-        "t=%.2f" % (i * 0.02,),
-        xy=(x[i], y[i]),
-        xytext=(-20, 20),
-        textcoords="offset points",
-        arrowprops=dict(arrowstyle="-", connectionstyle="arc3,rad=0"),
-    )
-
-xl, yl = zip(*[(seg.y, seg.x) for seg in left])
+xl, yl = zip(*[(seg.x, seg.y) for seg in left])
 ax[0].plot(xl, yl, color="red")
-for i in range(0, len(left), int(len(left)/10)):
-    ax[0].annotate(
-        "v=%.2f" % left[i].velocity,
-        xy=(xl[i], yl[i]),
-        xytext=(10, -10),
-        textcoords="offset points",
-        arrowprops=dict(arrowstyle="-", connectionstyle="arc3,rad=0"),
-    )
+# for i in range(0, len(left), int(len(left)/10)):
+#     ax[0].annotate(
+#         "v=%.2f" % left[i].velocity,
+#         xy=(xl[i], yl[i]),
+#         xytext=(10, -10),
+#         textcoords="offset points",
+#         arrowprops=dict(arrowstyle="-", connectionstyle="arc3,rad=0"),
+#     )
 
-xr, yr = zip(*[(seg.y, seg.x) for seg in right])
+xr, yr = zip(*[(seg.x, seg.y) for seg in right])
 ax[0].plot(xr, yr, color="red")
-for i in range(0, len(left), int(len(right)/10)):
-    ax[0].annotate(
-        "a=%.2f" % right[i].acceleration,
-        xy=(xr[i], yr[i]),
-        xytext=(-30, 15),
-        textcoords="offset points",
-        arrowprops=dict(arrowstyle="-", connectionstyle="arc3,rad=0"),
-    )
+# for i in range(0, len(left), int(len(right)/10)):
+#     ax[0].annotate(
+#         "a=%.2f" % right[i].acceleration,
+#         xy=(xr[i], yr[i]),
+#         xytext=(-30, 15),
+#         textcoords="offset points",
+#         arrowprops=dict(arrowstyle="-", connectionstyle="arc3,rad=0"),
+#     )
+
+axes = ax[0].axis([0,16, -8.2,0])
 
 t = range(len(trajectory))
 

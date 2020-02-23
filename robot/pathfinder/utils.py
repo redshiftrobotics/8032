@@ -34,8 +34,8 @@ def read_from_pathweaver(name, filepath):
     trajectory = []
 
     dt = 0.05
-    offset_x = trajectory_json[0]["pose"]["translation"]["x"]
-    offset_y = trajectory_json[0]["pose"]["translation"]["y"]
+    offset_x = 0 # trajectory_json[0]["pose"]["translation"]["x"]
+    offset_y = 0 # trajectory_json[0]["pose"]["translation"]["y"]
 
     last_segment = Segment(dt, 0, 0, 0, 0, 0, 0, 0)
     last_time = -0.01
