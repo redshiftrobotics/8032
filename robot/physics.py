@@ -74,7 +74,7 @@ class PhysicsEngine(object):
         # Motors
         self.l_motor = hal.simulation.PWMSim(1)
         self.r_motor = hal.simulation.PWMSim(2)
-        self.speed_mult = 1/2.7
+        self.speed_mult = (1/2.7)
 
         self.sim_gyro = hal.simulation.AnalogInSim(2)
 
@@ -113,3 +113,7 @@ class PhysicsEngine(object):
 
         # Update the gyro
         self.sim_gyro.setVoltage(self.field.frot.get())
+        
+        if tm_diff > 0:
+            vel = math.sqrt(x**2 + y**2)/tm_diff
+            print(vel)
