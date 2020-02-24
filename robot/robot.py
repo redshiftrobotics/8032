@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import wpilib
+from wpilib import DriverStation
 from networktables import NetworkTables
 from robotpy_ext.control.button_debouncer import ButtonDebouncer
 from ctre import WPI_TalonSRX, ControlMode, NeutralMode, FeedbackDevice, FollowerType, FeedbackDevice
@@ -62,9 +63,12 @@ class Robot(wpilib.TimedRobot):
         self.sd = NetworkTables.getTable('SmartDashboard')
 
         # joystick 0 on the driver station
-        self.driverJoystickLeft = wpilib.Joystick(0)
-        self.driverJoystickRight = wpilib.Joystick(1)
-        self.operatorJoystick = wpilib.Joystick(2)
+        self.driverJoystickLeftNumber = 0
+        self.driverJoystickRightNumber = 1
+        self.operatorJoystickNumber = 2
+        self.driverJoystickLeft = wpilib.Joystick(self.driverJoystickLeftNumber)
+        self.driverJoystickRight = wpilib.Joystick(self.driverJoystickRightNumber)
+        self.operatorJoystick = wpilib.Joystick(self.operatorJoystickNumber)
         self.halfSpeedButton = 2
         self.stopButton = 1
         
@@ -86,6 +90,7 @@ class Robot(wpilib.TimedRobot):
         # Setup the transit
         self.transit = Transit(6)
         self.transitAxis = 1
+        self.transitIndexSpeed = 0.1
 
         # Setup the hang
         self.hang = Hang(8, 9, 0.1, -0.1, 0)
@@ -302,6 +307,12 @@ class Robot(wpilib.TimedRobot):
         
         # Update the transit speed
         self.transit.speed(self.threshold(self.operatorJoystick.getRawAxis(self.transitAxis), 0.05))
+
+        rightPOV = DriverStation.getStickPOV(self.operatorJoystickNumber, 0)
+        if rightPOV == 0:
+            self.transit.speed(self.transitIndexSpeed)
+        elif rightPOV == 180:
+            self.transit.speed(-self.transitIndexSpeed)
 
         # Get max speed
         #self.speed = (-self.driverJoystickLeft.getRawAxis(3) + 1)/2
