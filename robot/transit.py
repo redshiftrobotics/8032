@@ -9,14 +9,15 @@ class Transit:
 
         self.transit_speed = 0
         self.inverted = inverted
+        self.transit_speed_mult = 0.6
 
     def forward(self):
         """Move balls away from the intake"""
-        self.transit_speed = self.inverted * 0.75
+        self.transit_speed = self.inverted * self.transit_speed_mult
 
     def backward(self):
         """Move balls towards the intake"""
-        self.transit_speed = -1 * self.inverted * 0.75
+        self.transit_speed = -1 * self.inverted * self.transit_speed_mult
 
     def stop(self):
         """Stop the transit"""
@@ -24,7 +25,7 @@ class Transit:
 
     def speed(self, speed):
         """Update max transit speed"""
-        self.transit_speed = speed
+        self.transit_speed = speed * self.transit_speed_mult
 
     def update(self):
         """Update the transit"""
