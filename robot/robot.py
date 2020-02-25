@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import wpilib
 from wpilib import DriverStation
+from wpilib import SendableChooser
 from networktables import NetworkTables
 from robotpy_ext.control.button_debouncer import ButtonDebouncer
 from ctre import WPI_TalonSRX, ControlMode, NeutralMode, FeedbackDevice, FollowerType, FeedbackDevice
@@ -16,6 +17,14 @@ class Robot(wpilib.TimedRobot):
     WHEEL_CIRCUMFERENCE = 0.1524 * math.pi # meters (6 inches)
     ENCODER_COUNTS_PER_REV = 4096
     ENCODER_CONSTANT = (1/ENCODER_COUNTS_PER_REV) * WHEEL_CIRCUMFERENCE
+
+    AUTOS = {
+        "initiation-line": {
+            "power-port": 0,
+            "shield-generator": 1
+        },
+        "3-ball": 2
+    }
 
     def threshold(self, value, limit):
          if (abs(value) < limit):
@@ -130,6 +139,13 @@ class Robot(wpilib.TimedRobot):
             self.kTimeoutMs,
         )
 
+        # AUTO SETUP
+        self.autoSelector = SendableChooser()
+        self.autoSelector.addOption("Initiation Line (Power Port)", self.AUTOS["initiation-line"]["power-port"])
+        self.autoSelector.addOption("Initiation Line (Shield Generator)", self.AUTOS["initiation-line"]["shield-generator"])
+        self.autoSelector.addOption("3 Ball", self.AUTOS["3-ball"])
+        self.sd.putData("Auto Selector", self.autoSelector)
+
         # Setup Talon PID constants
         # TODO: tune PID
         self.kP = 0.125
@@ -171,6 +187,7 @@ class Robot(wpilib.TimedRobot):
     def autonomousInit(self):
         """Called only at the beginning of autonomous mode."""
         # Setup auto state
+        self.selectedAuto = self.autoSelector.getSelected()
         self.autoState = "wait"
         self.timer.reset()
         self.timer.start()
@@ -188,13 +205,6 @@ class Robot(wpilib.TimedRobot):
 
     def autonomousPeriodic(self):
         """Called every 20ms in autonomous mode."""
-        self.sd.putNumber("ty", self.limelight.getTY())
-        self.sd.putNumber("tx", self.limelight.getTX())
-        self.sd.putNumber("tv", self.limelight.getTV())
-
-        dist = self.limelight.getDistance(self.targetBottomHeight)
-        if dist:
-            self.sd.putNumber("dist", dist)
 
         # Stop all unused mechanisms
         self.drive.stop()
@@ -202,75 +212,74 @@ class Robot(wpilib.TimedRobot):
         self.transit.stop()
         #self.hang.stop()
 
-        if self.autoState == "wait":
-            self.limelight.setLedMode(LIMELIGHT_LED_OFF)
-            if self.timer.get() < self.waitTime:
-                pass
-            else:
-                self.autoState = "align"
-        elif self.autoState == "align":
-            self.limelight.setLedMode(LIMELIGHT_LED_ON)
-            if self.limelight.getTV() > 0:
-                distError = self.limelight.getDistance(self.targetBottomHeight)
-                if distError is not None:
-                    distError -= self.targetDistance
-                    angleError = self.limelight.getTX()
+        if self.selectedAuto == self.AUTOS["initiation-line"]["power-port"] or self.selectedAuto == self.AUTOS["initiation-line"]["shield-generator"]:
+            # TODO: implement initiation line autos with ControlMode.Position
+            pass
+        elif self.selectedAuto == self.AUTOS["3-ball"]:
+            if self.autoState == "wait":
+                self.limelight.setLedMode(LIMELIGHT_LED_OFF)
+                if self.timer.get() < self.waitTime:
+                    pass
+                else:
+                    self.autoState = "align"
+            elif self.autoState == "align":
+                self.limelight.setLedMode(LIMELIGHT_LED_ON)
+                if self.limelight.getTV() > 0:
+                    distError = self.limelight.getDistance(self.targetBottomHeight)
+                    if distError is not None:
+                        distError -= self.targetDistance
+                        angleError = self.limelight.getTX()
 
-                    # Check if the robot is aligned
-                    if ((distError < self.distanceThreshold) and (angleError < self.angleThreshold)):
-                        self.limelight.setLedMode(LIMELIGHT_LED_OFF)
-                        self.timer.reset()
-                        self.autoState = "move"
-                    # If not continue aligning
-                    else:
-                        x, t = self.align(self.targetDistance, self.targetBottomHeight)
-                        self.drive.arcadeDrive(x, t, ControlMode.PercentOutput)
-            else:
-                self.missedFrames += 1
-            if (self.missedFrames >= 75):
-                self.timer.reset()
-                self.autoState = "move"
-        elif self.autoState == "move":
-            self.limelight.setLedMode(LIMELIGHT_LED_OFF)
-            if self.timer.get() < self.moveTime:
-                self.drive.arcadeDrive(-0.7, 0.2, ControlMode.PercentOutput)
-            else:
-                self.timer.reset()
-                self.autoState = "deposit"
-        elif self.autoState == "deposit":
-            self.limelight.setLedMode(LIMELIGHT_LED_OFF)
-            if self.timer.get() < self.depositTime:
-                self.transit.backward()
-            else:
-                self.timer.reset()
-                self.autoState = "leave"
-        elif self.autoState == "leave":
-            self.limelight.setLedMode(LIMELIGHT_LED_OFF)
-            if self.timer.get() < self.leaveTime:
-                self.drive.tankDrive(0.33, 1.0, ControlMode.PercentOutput)
-            else:
-                self.autoState = "back"
-                self.timer.reset()
-        elif self.autoState == "back":
-            self.limelight.setLedMode(LIMELIGHT_LED_OFF)
-            if self.timer.get() < self.backwardsTime:
-                self.drive.arcadeDrive(0.5, 0, ControlMode.PercentOutput)
-            else:
-                self.timer.reset()
-                self.autoState = "stop"
-        elif self.autoState == "stop":
-            self.limelight.setLedMode(LIMELIGHT_LED_OFF)
-            self.drive.stop()
+                        # Check if the robot is aligned
+                        if ((distError < self.distanceThreshold) and (angleError < self.angleThreshold)):
+                            self.limelight.setLedMode(LIMELIGHT_LED_OFF)
+                            self.timer.reset()
+                            self.autoState = "move"
+                        # If not continue aligning
+                        else:
+                            x, t = self.align(self.targetDistance, self.targetBottomHeight)
+                            self.drive.arcadeDrive(x, t, ControlMode.PercentOutput)
+                else:
+                    self.missedFrames += 1
+                if (self.missedFrames >= 75):
+                    self.timer.reset()
+                    self.autoState = "move"
+            elif self.autoState == "move":
+                self.limelight.setLedMode(LIMELIGHT_LED_OFF)
+                if self.timer.get() < self.moveTime:
+                    self.drive.arcadeDrive(-0.7, 0.2, ControlMode.PercentOutput)
+                else:
+                    self.timer.reset()
+                    self.autoState = "deposit"
+            elif self.autoState == "deposit":
+                self.limelight.setLedMode(LIMELIGHT_LED_OFF)
+                if self.timer.get() < self.depositTime:
+                    self.transit.backward()
+                else:
+                    self.timer.reset()
+                    self.autoState = "leave"
+            elif self.autoState == "leave":
+                self.limelight.setLedMode(LIMELIGHT_LED_OFF)
+                if self.timer.get() < self.leaveTime:
+                    self.drive.tankDrive(0.33, 1.0, ControlMode.PercentOutput)
+                else:
+                    self.autoState = "back"
+                    self.timer.reset()
+            elif self.autoState == "back":
+                self.limelight.setLedMode(LIMELIGHT_LED_OFF)
+                if self.timer.get() < self.backwardsTime:
+                    self.drive.arcadeDrive(0.5, 0, ControlMode.PercentOutput)
+                else:
+                    self.timer.reset()
+                    self.autoState = "stop"
+            elif self.autoState == "stop":
+                self.limelight.setLedMode(LIMELIGHT_LED_OFF)
+                self.drive.stop()
         
         self.drive.update()
-        #self.intake.update()
+        self.intake.update()
         self.transit.update()
         #self.hang.update()
-        self.sd.putString("state", self.autoState)
-        self.sd.putNumber("missed frames", self.missedFrames)
-        self.sd.putNumber("R ENC", self.rightMaster.getSelectedSensorPosition())
-        self.sd.putNumber("L ENC", self.leftMaster.getSelectedSensorPosition())
-        self.sd.putNumber("timer", self.timer.get())
 
     def teleopInit(self):
         """Called only at the beginning of teleop mode."""
