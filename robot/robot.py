@@ -211,18 +211,20 @@ class Robot(wpilib.TimedRobot):
         elif self.autoState == "align":
             self.limelight.setLedMode(LIMELIGHT_LED_ON)
             if self.limelight.getTV() > 0:
-                distError = self.limelight.getDistance(self.targetBottomHeight) - self.targetDistance
-                angleError = self.limelight.getTX()
+                distError = self.limelight.getDistance(self.targetBottomHeight)
+                if distError is not None:
+                    distError -= self.targetDistance
+                    angleError = self.limelight.getTX()
 
-                # Check if the robot is aligned
-                if ((distError < self.distanceThreshold) and (angleError < self.angleThreshold)):
-                    self.limelight.setLedMode(LIMELIGHT_LED_OFF)
-                    self.timer.reset()
-                    self.autoState = "move"
-                # If not continue aligning
-                else:
-                    x, t = self.align(self.targetDistance, self.targetBottomHeight)
-                    self.drive.arcadeDrive(x, t, ControlMode.PercentOutput)
+                    # Check if the robot is aligned
+                    if ((distError < self.distanceThreshold) and (angleError < self.angleThreshold)):
+                        self.limelight.setLedMode(LIMELIGHT_LED_OFF)
+                        self.timer.reset()
+                        self.autoState = "move"
+                    # If not continue aligning
+                    else:
+                        x, t = self.align(self.targetDistance, self.targetBottomHeight)
+                        self.drive.arcadeDrive(x, t, ControlMode.PercentOutput)
             else:
                 self.missedFrames += 1
             if (self.missedFrames >= 75):
