@@ -43,8 +43,8 @@ while ret:
     print("[INFO] {} unique segments found".format(len(np.unique(labels)) - 1))
 
     for label in np.unique(labels):
-        if label == 0:
-            continue
+        # if label == 0:
+        #     continue
         
         mask = np.zeros(gray.shape, dtype="uint8")
         mask[labels == label] = 255
@@ -67,7 +67,7 @@ while ret:
     current = time.time()
     fps = current - start
 
-    print(fps)      
+    print(1/fps)      
 
 cv2.destroyWindow("preview")
 
