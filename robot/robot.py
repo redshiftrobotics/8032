@@ -104,7 +104,9 @@ class Robot(wpilib.TimedRobot):
         self.transitIndexSpeed = 0.1
 
         # Setup the hang
-        self.hang = Hang(8, 9, 0.1, -0.1, 0)
+        self.hang = Hang(8, 9, 0.1, 0.1)
+        self.hangAxis = 3
+        self.hangExtend = 10
 
         # Setup Master motors for each side
         self.leftMaster = WPI_TalonSRX(4) # Front left Motor
@@ -305,7 +307,7 @@ class Robot(wpilib.TimedRobot):
         self.compressor.start()
 
         # Turn off the limelight LED
-        self.limelight.setLedMode(LIMELIGHT_LED_ON)
+        self.limelight.setLedMode(LIMELIGHT_LED_OFF)
 
     def teleopPeriodic(self):
         """Called every 20ms in autonomous mode."""
@@ -337,15 +339,19 @@ class Robot(wpilib.TimedRobot):
         # Update the transit speed
         self.transit.speed(self.threshold(self.operatorJoystick.getRawAxis(self.transitAxis), 0.05))
 
-        #rightPOV = DriverStation.getStickPOV(self.operatorJoystickNumber, 0)
-        #if rightPOV == 0:
-        #    self.transit.speed(self.transitIndexSpeed)
-        #elif rightPOV == 180:
-        #    self.transit.speed(-self.transitIndexSpeed)
+        rightPOV = DriverStation.getStickPOV(self.operatorJoystickNumber, 0)
+        if rightPOV == 0:
+            self.transit.speed(self.transitIndexSpeed)
+        elif rightPOV == 180:
+            self.transit.speed(-self.transitIndexSpeed)
 
-        # Get max speed
-        #self.speed = (-self.driverJoystickLeft.getRawAxis(3) + 1)/2
-        
+        # Update hang
+        if self.operatorJoystick.getRawButton(self.hangExtend):
+            self.hang.extend()
+        else:
+            self.hang.move(self.operatorJoystick.getRawAxis(self.hangAxis))
+
+        # Update robot drive
         if self.driverJoystickRight.getRawButton(self.stopButton):
             self.drive.arcadeDrive(0,0, ControlMode.PercentOutput)
         else:

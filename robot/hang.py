@@ -17,6 +17,7 @@ class Hang:
             self.kPIDLoopIdx,
             self.kTimeoutMs,
         )
+        
         self.master_motor.config_kP(self.kPIDLoopIdx, self.kP, self.kTimeoutMs)
         self.master_motor.config_kD(self.kPIDLoopIdx, self.kD, self.kTimeoutMs)
         self.master_motor.config_kI(self.kPIDLoopIdx, self.kI, self.kTimeoutMs)
@@ -42,7 +43,7 @@ class Hang:
     def extend(self):
         """Extends hang"""
         self.hang_tgt = self.stop_point
-        self.hang_mode = ControlMode.Position
+        self.hang_mode = ControlMode.PercentOutput#ControlMode.Position
 
     def move(self, speed_mult = 1):
         """Moves hang"""
@@ -56,5 +57,3 @@ class Hang:
     def update(self):
         """Updates the values if they are changed"""
         self.master_motor.set(self.hang_mode, self.hang_tgt)
-
-        
