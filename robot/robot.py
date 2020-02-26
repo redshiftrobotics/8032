@@ -2,6 +2,7 @@
 import wpilib
 from wpilib import DriverStation
 from wpilib import SendableChooser
+from wpilib import SmartDashboard
 from networktables import NetworkTables
 from robotpy_ext.control.button_debouncer import ButtonDebouncer
 from ctre import WPI_TalonSRX, ControlMode, NeutralMode, FeedbackDevice, FollowerType, FeedbackDevice
@@ -106,23 +107,23 @@ class Robot(wpilib.TimedRobot):
 
         # Setup Master motors for each side
         self.leftMaster = WPI_TalonSRX(4) # Front left Motor
-        self.leftMaster.setInverted(False)
+        self.leftMaster.setInverted(True)
         self.leftMaster.setSensorPhase(False)
         self.leftMaster.setNeutralMode(NeutralMode.Brake)
 
         self.rightMaster = WPI_TalonSRX(5) # Front right Motor
-        self.rightMaster.setInverted(True)
+        self.rightMaster.setInverted(False)
         self.rightMaster.setSensorPhase(False)
         self.rightMaster.setNeutralMode(NeutralMode.Brake)
 
         # Setup Follower motors for each side
         self.leftAlt = WPI_TalonSRX(2) # Back left motor
-        self.leftAlt.setInverted(False)
+        self.leftAlt.setInverted(True)
         self.leftAlt.follow(self.leftMaster)
         self.leftAlt.setNeutralMode(NeutralMode.Brake)
 
         self.rightAlt = WPI_TalonSRX(3) # Back right motor
-        self.rightAlt.setInverted(True)
+        self.rightAlt.setInverted(False)
         self.rightAlt.follow(self.rightMaster)
         self.rightAlt.setNeutralMode(NeutralMode.Brake)
 
@@ -144,11 +145,11 @@ class Robot(wpilib.TimedRobot):
         self.autoSelector.addOption("Initiation Line (Power Port)", self.AUTOS["initiation-line"]["power-port"])
         self.autoSelector.addOption("Initiation Line (Shield Generator)", self.AUTOS["initiation-line"]["shield-generator"])
         self.autoSelector.addOption("3 Ball", self.AUTOS["3-ball"])
-        self.sd.putData("Auto Selector", self.autoSelector)
+        SmartDashboard.putData("Auto Selector", self.autoSelector)
 
         # Setup Talon PID constants
         # TODO: tune PID
-        self.kP = 0.125
+        self.kP = 0.05
         self.kD = 0
         self.kI = 0
 
@@ -221,10 +222,13 @@ class Robot(wpilib.TimedRobot):
         if self.selectedAuto == self.AUTOS["initiation-line"]["power-port"] or self.selectedAuto == self.AUTOS["initiation-line"]["shield-generator"]:
             moveTgt = self.initiationLineDistance
             if self.selectedAuto == self.AUTOS["initiation-line"]["power-port"]:
-                moveTgt *= -1
-            elif self.selectedAuto == self.AUTOS["initiation-line"]["shield-generator"]:
                 moveTgt *= 1
+            elif self.selectedAuto == self.AUTOS["initiation-line"]["shield-generator"]:
+                moveTgt *= -1
             self.drive.tankDrive(moveTgt, moveTgt, ControlMode.Position)
+
+            self.sd.putNumber("Target", moveTgt)
+            self.sd.putNumber("Current", self.drive.getEncoderAverage())
         elif self.selectedAuto == self.AUTOS["3-ball"]:
             if self.autoState == "wait":
                 self.limelight.setLedMode(LIMELIGHT_LED_OFF)
@@ -329,11 +333,11 @@ class Robot(wpilib.TimedRobot):
         # Update the transit speed
         self.transit.speed(self.threshold(self.operatorJoystick.getRawAxis(self.transitAxis), 0.05))
 
-        rightPOV = DriverStation.getStickPOV(self.operatorJoystickNumber, 0)
-        if rightPOV == 0:
-            self.transit.speed(self.transitIndexSpeed)
-        elif rightPOV == 180:
-            self.transit.speed(-self.transitIndexSpeed)
+        #rightPOV = DriverStation.getStickPOV(self.operatorJoystickNumber, 0)
+        #if rightPOV == 0:
+        #    self.transit.speed(self.transitIndexSpeed)
+        #elif rightPOV == 180:
+        #    self.transit.speed(-self.transitIndexSpeed)
 
         # Get max speed
         #self.speed = (-self.driverJoystickLeft.getRawAxis(3) + 1)/2
@@ -347,7 +351,7 @@ class Robot(wpilib.TimedRobot):
                 self.speed = 1.0
 
             # Get turn and movement speeds
-            tAxis = -self.threshold(self.driverJoystickLeft.getRawAxis(0), 0.05) * self.tSpeed * self.speed
+            tAxis = self.threshold(self.driverJoystickLeft.getRawAxis(0), 0.05) * self.tSpeed * self.speed
             xAxis = self.threshold(self.driverJoystickRight.getRawAxis(1), 0.05) * self.xSpeed * self.speed
             self.drive.arcadeDrive(xAxis, tAxis, ControlMode.PercentOutput)
 
@@ -355,7 +359,7 @@ class Robot(wpilib.TimedRobot):
         self.intake.update()
         self.transit.update()
         #self.hang.update()
-        self.limelight.setLedMode(LIMELIGHT_LED_OFF)
+        self.limelight.setLedMode(LIMELIGHT_LED_ON)
         
     
 if __name__ == "__main__":

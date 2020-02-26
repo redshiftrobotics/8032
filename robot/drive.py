@@ -28,6 +28,9 @@ class Drive:
     def update(self):
         self.leftMaster.set(self.controlMode, self.leftSpeed)
         self.rightMaster.set(self.controlMode, self.rightSpeed)
+
+    def getEncoderAverage(self):
+        return (self.leftMaster.getSelectedSensorPosition() + self.rightMaster.getSelectedSensorPosition())/2
     
     def stop(self):
         self.leftSpeed = 0
