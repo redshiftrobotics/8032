@@ -184,6 +184,12 @@ class Robot(wpilib.TimedRobot):
         self.backwardsTime = 1.0
         self.leaveThreshold = 50
 
+        #self.moveTimeSD = 
+
+        # Initiation Line auto parameters
+        self.initiationLineDistance = 0.5 # meters
+        self.initiationLineDistance /= self.ENCODER_CONSTANT
+
     def autonomousInit(self):
         """Called only at the beginning of autonomous mode."""
         # Setup auto state
@@ -213,8 +219,12 @@ class Robot(wpilib.TimedRobot):
         #self.hang.stop()
 
         if self.selectedAuto == self.AUTOS["initiation-line"]["power-port"] or self.selectedAuto == self.AUTOS["initiation-line"]["shield-generator"]:
-            # TODO: implement initiation line autos with ControlMode.Position
-            pass
+            moveTgt = self.initiationLineDistance
+            if self.selectedAuto == self.AUTOS["initiation-line"]["power-port"]:
+                moveTgt *= -1
+            elif self.selectedAuto == self.AUTOS["initiation-line"]["shield-generator"]:
+                moveTgt *= 1
+            self.drive.tankDrive(moveTgt, moveTgt, ControlMode.Position)
         elif self.selectedAuto == self.AUTOS["3-ball"]:
             if self.autoState == "wait":
                 self.limelight.setLedMode(LIMELIGHT_LED_OFF)
