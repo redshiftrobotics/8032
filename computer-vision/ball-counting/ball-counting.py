@@ -1,75 +1,119 @@
-# imports necessary libraries
+# Import general libraries
+import json
+import sys
+import time
+
+# Import communication libraries
+from networktables import NetworkTablesInstance
+import ntcore
+
+# Import CV libraries
 import cv2
 import numpy as np
-import imutils
 from skimage.feature import peak_local_max
 from skimage.morphology import watershed
 from scipy import ndimage
-import time
-
-vs = cv2.VideoCapture(0)
 
 lower_yellow = np.array([20,75,75])
 upper_yellow = np.array([35,255,255])
 
-frames = 0
-
-
-if vs.isOpened():
-    ret, img = vs.read()
-else:
-    ret = False
-
-while ret:
-    start = time.time()
-
-    ret, img = vs.read()
+def count_balls(img):
     shifted = cv2.pyrMeanShiftFiltering(img, 21, 51)
     blurred = cv2.GaussianBlur(shifted, (11, 11), 0)
     hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
-    gray = cv2.cvtColor(blurred, cv2.COLOR_BGR2GRAY)
 
     msk = cv2.inRange(hsv, lower_yellow, upper_yellow)
 
-    msk = cv2.erode(msk,None,iterations = 20)
-    msk = cv2.dilate(msk,None,iterations = 20)
+    msk = cv2.erode(msk, None, iterations=20)
+    msk = cv2.dilate(msk, None, iterations=20)
 
 
     D = ndimage.distance_transform_edt(msk)
-    localMax = peak_local_max(D, indices = False, min_distance = 20, labels = msk)
+    localMax = peak_local_max(D, indices=False, min_distance=20, labels=msk)
 
     markers = ndimage.label(localMax, structure = np.ones((3,3)))[0]
     labels = watershed(-D, markers, mask = msk)
-    print("[INFO] {} unique segments found".format(len(np.unique(labels)) - 1))
+    num_balls = len(np.unique(labels)) - 1
 
-    for label in np.unique(labels):
-        # if label == 0:
-        #     continue
-        
-        mask = np.zeros(gray.shape, dtype="uint8")
-        mask[labels == label] = 255
-        ctrs = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        ctrs = imutils.grab_contours(ctrs)
-        c = max(ctrs, key=cv2.contourArea)
-        contour = cv2.drawContours(img, ctrs, -1, (0, 255, 255), 3)
-        (x, y), radius = cv2.minEnclosingCircle(c)
-        center = (int(x), int(y))
-        radius = int(radius)
-        circle = cv2.circle(img, center, radius, (255, 255, 0), 2)
-        
-    cv2.imshow('r', img)
+    return num_balls
 
-    k = cv2.waitKey(125)
-        
-    if k == 27:
-        break
+configFile = "/boot/frc.json"
 
-    current = time.time()
-    fps = current - start
+class CameraConfig: pass
 
-    print(1/fps)      
+team = None
+server = False
+cameraConfigs = []
+switchedCameraConfigs = []
+cameras = []
 
-cv2.destroyWindow("preview")
+def parseError(str):
+    """Report parse error."""
+    print("config error in '" + configFile + "': " + str, file=sys.stderr)
 
+def readConfig():
+    """Read configuration file."""
+    global team
+    global server
 
+    # parse file
+    try:
+        with open(configFile, "rt", encoding="utf-8") as f:
+            j = json.load(f)
+    except OSError as err:
+        print("could not open '{}': {}".format(configFile, err), file=sys.stderr)
+        return False
+
+    # top level must be an object
+    if not isinstance(j, dict):
+        parseError("must be JSON object")
+        return False
+
+    # team number
+    try:
+        team = j["team"]
+    except KeyError:
+        parseError("could not read team number")
+        return False
+
+    # ntmode (optional)
+    if "ntmode" in j:
+        str = j["ntmode"]
+        if str.lower() == "client":
+            server = False
+        elif str.lower() == "server":
+            server = True
+        else:
+            parseError("could not understand ntmode value '{}'".format(str))
+
+    return True
+
+if __name__ == "__main__":
+    if len(sys.argv) >= 2:
+        configFile = sys.argv[1]
+
+    # read configuration
+    if not readConfig():
+        sys.exit(1)
+
+    # start NetworkTables
+    ntinst = NetworkTablesInstance.getDefault()
+    if server:
+        print("Setting up NetworkTables server")
+        ntinst.startServer()
+    else:
+        print("Setting up NetworkTables client for team {}".format(team))
+        ntinst.startClientTeam(team)
     
+    usbCamera = cv2.VideoCapture(0)
+
+    # loop forever
+    while True:
+        ret, img = usbCamera.read()
+        
+        if ret == 0:
+            time.sleep(0.4)
+            continue
+        
+        balls = count_balls(img)
+        print(balls)
