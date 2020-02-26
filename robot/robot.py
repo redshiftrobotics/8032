@@ -3,6 +3,7 @@ import wpilib
 from wpilib import DriverStation
 from wpilib import SendableChooser
 from wpilib import SmartDashboard
+from wpilib import CameraServer
 from networktables import NetworkTables
 from robotpy_ext.control.button_debouncer import ButtonDebouncer
 from ctre import WPI_TalonSRX, ControlMode, NeutralMode, FeedbackDevice, FollowerType, FeedbackDevice
@@ -79,8 +80,8 @@ class Robot(wpilib.TimedRobot):
         self.driverJoystickLeft = wpilib.Joystick(self.driverJoystickLeftNumber)
         self.driverJoystickRight = wpilib.Joystick(self.driverJoystickRightNumber)
         self.operatorJoystick = wpilib.Joystick(self.operatorJoystickNumber)
-        self.halfSpeedButton = 2
-        self.stopButton = 1
+        self.halfSpeedButton = 2 # [Thumb Left]
+        self.stopButton = 1 # [Trigger]
         
         # Create a simple timer
         self.timer = wpilib.Timer()
@@ -90,8 +91,8 @@ class Robot(wpilib.TimedRobot):
 
         # Setup the intake
         self.intake = Intake(7,0,1,0)
-        self.intakeToggle = ButtonDebouncer(self.operatorJoystick, 6)
-        self.intakeCollectToggle = ButtonDebouncer(self.operatorJoystick, 4)
+        self.intakeToggle = ButtonDebouncer(self.operatorJoystick, 6) # [Y Button]
+        self.intakeCollectToggle = ButtonDebouncer(self.operatorJoystick, 4) # [A Button]
         self.intakeCollectToggleOn = False
         self.intakeReverse = 1
         self.intakeForward = 4
@@ -99,7 +100,7 @@ class Robot(wpilib.TimedRobot):
 
         # Setup the transit
         self.transit = Transit(6)
-        self.transitAxis = 1
+        self.transitAxis = 1 # [Left Joystick Y Axis]
         self.transitIndexSpeed = 0.1
 
         # Setup the hang
@@ -139,6 +140,9 @@ class Robot(wpilib.TimedRobot):
             self.kPIDLoopIdx,
             self.kTimeoutMs,
         )
+
+        # Start camera server
+        CameraServer.launch()
 
         # AUTO SETUP
         self.autoSelector = SendableChooser()
