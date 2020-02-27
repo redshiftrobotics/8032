@@ -12,6 +12,7 @@ class Hang:
         self.kI = kI
 
         self.master_motor = WPI_TalonSRX(left_motor_id)
+        self.master_motor.setInverted(False)
         self.master_motor.configSelectedFeedbackSensor(
             FeedbackDevice.CTRE_MagEncoder_Relative,
             self.kPIDLoopIdx,
@@ -23,8 +24,8 @@ class Hang:
         self.master_motor.config_kI(self.kPIDLoopIdx, self.kI, self.kTimeoutMs)
 
         self.follower_motor = WPI_TalonSRX(right_motor_id)
-        self.follower_motor.follow(self.master_motor)
         self.follower_motor.setInverted(True)
+        #self.follower_motor.follow(self.master_motor)
 
         self.hang_tgt = 0
         self.hang_mode = ControlMode.PercentOutput
@@ -56,4 +57,5 @@ class Hang:
 
     def update(self):
         """Updates the values if they are changed"""
+        self.follower_motor.set(self.hang_mode, self.hang_tgt)
         self.master_motor.set(self.hang_mode, self.hang_tgt)
