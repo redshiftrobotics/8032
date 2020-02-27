@@ -37,48 +37,48 @@ def count_balls(img):
 
     return num_balls
 
-configFile = "/boot/frc.json"
+config_file = "/boot/frc.json"
 
 class CameraConfig: pass
 
 team = None
 server = False
-cameraConfigs = []
-switchedCameraConfigs = []
+camera_configs = []
+switched_camera_configs = []
 cameras = []
 
 def parseError(str):
     """Report parse error."""
-    print("config error in '" + configFile + "': " + str, file=sys.stderr)
+    print("config error in '" + config_file + "': " + str, file=sys.stderr)
 
 def readConfig():
     """Read configuration file."""
     global team
     global server
 
-    # parse file
+    # Parse file
     try:
-        with open(configFile, "rt", encoding="utf-8") as f:
-            j = json.load(f)
+        with open(config_file, "rt", encoding="utf-8") as f:
+            config_json = json.load(f)
     except OSError as err:
-        print("could not open '{}': {}".format(configFile, err), file=sys.stderr)
+        print("could not open '{}': {}".format(config_file, err), file=sys.stderr)
         return False
 
-    # top level must be an object
-    if not isinstance(j, dict):
+    # Top level must be an object
+    if not isinstance(config_json, dict):
         parseError("must be JSON object")
         return False
 
-    # team number
+    # Get team number
     try:
-        team = j["team"]
+        team = config_json["team"]
     except KeyError:
         parseError("could not read team number")
         return False
 
-    # ntmode (optional)
-    if "ntmode" in j:
-        str = j["ntmode"]
+    # NetworkTables Mode (optional)
+    if "ntmode" in config_json:
+        str = config_json["ntmode"]
         if str.lower() == "client":
             server = False
         elif str.lower() == "server":
@@ -90,30 +90,34 @@ def readConfig():
 
 if __name__ == "__main__":
     if len(sys.argv) >= 2:
-        configFile = sys.argv[1]
+        config_file = sys.argv[1]
 
-    # read configuration
+    # Read configuration
     if not readConfig():
         sys.exit(1)
 
-    # start NetworkTables
-    ntinst = NetworkTablesInstance.getDefault()
+    # Start NetworkTables instance
+    networktables_instance = NetworkTablesInstance.getDefault()
+
     if server:
         print("Setting up NetworkTables server")
-        ntinst.startServer()
+        networktables_instance.startServer()
+
     else:
         print("Setting up NetworkTables client for team {}".format(team))
-        ntinst.startClientTeam(team)
+        networktables_instance.startClientTeam(team)
     
-    usbCamera = cv2.VideoCapture(0)
+    # Create camera symbol
+    usb_camera = cv2.VideoCapture(0)
 
-    # loop forever
+    # While running
     while True:
-        ret, img = usbCamera.read()
+        ret, img = usb_camera.read()
         
         if ret == 0:
-            time.sleep(0.4)
+            time.sleep(0.1)
             continue
         
         balls = count_balls(img)
+        networktables_instance.getTable("Main").putNumber("Counted Balls", balls)
         print(balls)
