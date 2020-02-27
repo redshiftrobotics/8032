@@ -103,7 +103,9 @@ if __name__ == "__main__":
         print(balls)
 
 
+# Copyright Levi Sprung 2020
 def count_balls(img):
+    """Counts the number of FRC power cells in an image"""
     shifted = cv2.pyrMeanShiftFiltering(img, 21, 51)
     blurred = cv2.GaussianBlur(shifted, (11, 11), 0)
     hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
