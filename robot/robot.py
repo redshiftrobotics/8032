@@ -339,30 +339,37 @@ class Robot(wpilib.TimedRobot):
             self.intake.disable_collect()
         
         # TRANSIT CODE
-        # Update the transit speed
+        # Update the transit speed based on joystick
         self.transit.speed(self.threshold(self.operatorJoystick.getRawAxis(self.transitAxis), 0.05))
 
+        # Update transit based on D-PAD for indexing
         rightPOV = self.operatorJoystick.getPOV(0)
-        print(rightPOV)
         if rightPOV == 0:
             self.transit.speed(self.transitIndexSpeed)
         elif rightPOV == 180:
             self.transit.speed(-self.transitIndexSpeed)
 
         # HANG CODE
-        # Update hang
-        self.hang.stop()
+        # Get target speed from the joystick
         hangSpeed = (self.operatorJoystick.getRawAxis(self.hangAxis) + 1)/2
+
+        # Update the hang speed to either
+        # * A static speed for extending
+        # * A variable speed based on the joystick for retracting
+        # NOTE: Because the motor is turning the same direction in both modes, they can be used interchangeably until an encoder is installed 
         if self.operatorJoystick.getRawButton(self.hangExtend):
             self.hang.extend()
         elif hangSpeed > 0.1:
             self.hang.move(self.operatorJoystick.getRawAxis(self.hangAxis))
+        else:
+            self.hang.stop()
 
         # DRIVE CODE
-        # Update robot drive
+        # Check if stop robot button is pressed
         if self.driverJoystickRight.getRawButton(self.stopButton):
             self.drive.arcadeDrive(0,0, ControlMode.PercentOutput)
         else:
+            # Set the max speed of the robot
             if self.driverJoystickRight.getRawButton(self.halfSpeedButton):
                 self.speed = 0.5
             else:
@@ -378,7 +385,8 @@ class Robot(wpilib.TimedRobot):
         self.intake.update()
         self.transit.update()
         self.hang.update()
-        self.limelight.setLedMode(LIMELIGHT_LED_ON)
+        # NOTE: If auto-alignment to the loading bay is added, this will need to be moved so that the LED can turn on during use
+        self.limelight.setLedMode(LIMELIGHT_LED_OFF)
         
     
 if __name__ == "__main__":
