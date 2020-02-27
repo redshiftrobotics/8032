@@ -1,5 +1,0 @@
-wpilib==2019.2.3
-pyfrc==2019.1.0
-robotpy-ctre==2019.3.2
-pynetworktables==2019.0.2
-opencv-python>=4.2.0.32
