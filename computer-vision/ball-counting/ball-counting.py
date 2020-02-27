@@ -90,6 +90,10 @@ if __name__ == "__main__":
     # Create camera symbol
     usb_camera = cv2.VideoCapture(0)
 
+    table = networktables_instance.getTable("Main")
+
+    print("Logging to table ", table.toString())
+
     # While running
     while True:
         ret, img = usb_camera.read()
@@ -99,9 +103,7 @@ if __name__ == "__main__":
             continue
         
         balls = count_balls(img)
-        networktables_instance.getTable("Main").putNumber("Counted Balls", balls)
-        print(balls)
-
+        table.putNumber("Counted Balls", balls)
 
 # Copyright Levi Sprung 2020
 def count_balls(img):
