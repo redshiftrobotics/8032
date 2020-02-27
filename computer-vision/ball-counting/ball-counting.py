@@ -17,26 +17,6 @@ from scipy import ndimage
 lower_yellow = np.array([20,75,75])
 upper_yellow = np.array([35,255,255])
 
-def count_balls(img):
-    shifted = cv2.pyrMeanShiftFiltering(img, 21, 51)
-    blurred = cv2.GaussianBlur(shifted, (11, 11), 0)
-    hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
-
-    msk = cv2.inRange(hsv, lower_yellow, upper_yellow)
-
-    msk = cv2.erode(msk, None, iterations=20)
-    msk = cv2.dilate(msk, None, iterations=20)
-
-
-    D = ndimage.distance_transform_edt(msk)
-    localMax = peak_local_max(D, indices=False, min_distance=20, labels=msk)
-
-    markers = ndimage.label(localMax, structure = np.ones((3,3)))[0]
-    labels = watershed(-D, markers, mask = msk)
-    num_balls = len(np.unique(labels)) - 1
-
-    return num_balls
-
 config_file = "/boot/frc.json"
 
 class CameraConfig: pass
@@ -47,11 +27,11 @@ camera_configs = []
 switched_camera_configs = []
 cameras = []
 
-def parseError(str):
+def parse_error(str):
     """Report parse error."""
     print("config error in '" + config_file + "': " + str, file=sys.stderr)
 
-def readConfig():
+def read_config():
     """Read configuration file."""
     global team
     global server
@@ -66,14 +46,14 @@ def readConfig():
 
     # Top level must be an object
     if not isinstance(config_json, dict):
-        parseError("must be JSON object")
+        parse_error("must be JSON object")
         return False
 
     # Get team number
     try:
         team = config_json["team"]
     except KeyError:
-        parseError("could not read team number")
+        parse_error("could not read team number")
         return False
 
     # NetworkTables Mode (optional)
@@ -84,7 +64,7 @@ def readConfig():
         elif str.lower() == "server":
             server = True
         else:
-            parseError("could not understand ntmode value '{}'".format(str))
+            parse_error("could not understand ntmode value '{}'".format(str))
 
     return True
 
@@ -93,7 +73,7 @@ if __name__ == "__main__":
         config_file = sys.argv[1]
 
     # Read configuration
-    if not readConfig():
+    if not read_config():
         sys.exit(1)
 
     # Start NetworkTables instance
@@ -121,3 +101,24 @@ if __name__ == "__main__":
         balls = count_balls(img)
         networktables_instance.getTable("Main").putNumber("Counted Balls", balls)
         print(balls)
+
+
+def count_balls(img):
+    shifted = cv2.pyrMeanShiftFiltering(img, 21, 51)
+    blurred = cv2.GaussianBlur(shifted, (11, 11), 0)
+    hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
+
+    msk = cv2.inRange(hsv, lower_yellow, upper_yellow)
+
+    msk = cv2.erode(msk, None, iterations=20)
+    msk = cv2.dilate(msk, None, iterations=20)
+
+
+    D = ndimage.distance_transform_edt(msk)
+    localMax = peak_local_max(D, indices=False, min_distance=20, labels=msk)
+
+    markers = ndimage.label(localMax, structure = np.ones((3,3)))[0]
+    labels = watershed(-D, markers, mask = msk)
+    num_balls = len(np.unique(labels)) - 1
+
+    return num_balls
