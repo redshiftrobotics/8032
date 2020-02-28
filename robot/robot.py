@@ -97,7 +97,8 @@ class Robot(wpilib.TimedRobot):
 
         # Setup the hang
         self.hang = Hang(8, 9, 0.3, 0.3)
-        self.hangAxis = 2
+        self.hangLeftAxis = 2
+        self.hangRightAxis = 3
         self.hangExtend = 5
 
         # Setup Master motors for each side
@@ -208,7 +209,8 @@ class Robot(wpilib.TimedRobot):
         self.drive.stop()
         self.intake.stop()
         self.transit.stop()
-        #self.hang.stop()
+        
+        # Run the selected auto
         if self.selectedAuto == AUTOS["initiation-line"]["power-port"] or self.selectedAuto == AUTOS["initiation-line"]["shield-generator"]:
             if self.autoState == "wait":
                 if self.timer.get() < WAIT_TIME:
@@ -292,7 +294,7 @@ class Robot(wpilib.TimedRobot):
         self.drive.update()
         self.intake.update()
         self.transit.update()
-        #self.hang.update()
+
         self.sd.putString("Auto State", self.autoState)
 
     def teleopInit(self):
@@ -315,13 +317,12 @@ class Robot(wpilib.TimedRobot):
         if self.intakeCollectToggle.get():
            self.intakeCollectToggleOn = not self.intakeCollectToggleOn
 
-        # Update the speed of the intake based on whether the forward toggle is on, or the back button is pressed
+        # Update the direction of the intake based on whether the forward toggle is on, 
+        #   or the back button is pressed
+        # Update the speed of the intake based on the driving direction of the robot
         if self.operatorJoystick.getRawButton(self.intakeReverse):
             self.intake.speed(-self.baseIntakeSpeed)
             self.intake.enable_collect()
-        # elif self.operatorJoystick.getRawButton(self.intakeForward):
-        #     self.intake.speed(self.baseIntakeSpeed)
-        #     self.intake.enable_collect()
         elif self.intakeCollectToggleOn:
            robotDirection = self.leftMaster.get() + self.rightMaster.get()
            if robotDirection < 0:
@@ -344,16 +345,8 @@ class Robot(wpilib.TimedRobot):
             self.transit.speed(-self.transitIndexSpeed)
 
         # HANG CODE
-        # Get target speed from the joystick
-        hangSpeed = (self.operatorJoystick.getRawAxis(self.hangAxis) + 1)/2
-
-        # Update the hang speed to either
-        # * A static speed for extending
-        # * A variable speed based on the joystick for retracting
-        # NOTE: Because the motor is turning the same direction in both modes, they can be used interchangeably until an encoder is installed 
-        self.hang.move(self.operatorJoystick.getRawAxis(self.hangAxis))
-        if self.operatorJoystick.getRawButton(self.hangExtend):
-            self.hang.extend()
+        # Update each side of the hang to move based on the corresponding joystick trigger
+        self.hang.move(self.operatorJoystick.getRawAxis(self.hangLeftAxis), self.operatorJoystick.getRawAxis(self.hangRightAxis))
 
         # DRIVE CODE
         # Check if stop robot button is pressed

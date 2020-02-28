@@ -11,23 +11,32 @@ class Hang:
         self.kD = kD
         self.kI = kI
 
-        self.master_motor = WPI_TalonSRX(left_motor_id)
-        self.master_motor.setInverted(False)
-        self.master_motor.configSelectedFeedbackSensor(
+        self.left_motor = WPI_TalonSRX(left_motor_id)
+        self.left_motor.setInverted(False)
+        self.left_motor.configSelectedFeedbackSensor(
             FeedbackDevice.CTRE_MagEncoder_Relative,
             self.kPIDLoopIdx,
             self.kTimeoutMs,
         )
         
-        self.master_motor.config_kP(self.kPIDLoopIdx, self.kP, self.kTimeoutMs)
-        self.master_motor.config_kD(self.kPIDLoopIdx, self.kD, self.kTimeoutMs)
-        self.master_motor.config_kI(self.kPIDLoopIdx, self.kI, self.kTimeoutMs)
+        self.left_motor.config_kP(self.kPIDLoopIdx, self.kP, self.kTimeoutMs)
+        self.left_motor.config_kD(self.kPIDLoopIdx, self.kD, self.kTimeoutMs)
+        self.left_motor.config_kI(self.kPIDLoopIdx, self.kI, self.kTimeoutMs)
 
-        self.follower_motor = WPI_TalonSRX(right_motor_id)
-        self.follower_motor.setInverted(True)
-        #self.follower_motor.follow(self.master_motor)
+        self.right_motor = WPI_TalonSRX(right_motor_id)
+        self.right_motor.setInverted(True)
+        self.right_motor.configSelectedFeedbackSensor(
+            FeedbackDevice.CTRE_MagEncoder_Relative,
+            self.kPIDLoopIdx,
+            self.kTimeoutMs,
+        )
 
-        self.hang_tgt = 0
+        self.right_motor.config_kP(self.kPIDLoopIdx, self.kP, self.kTimeoutMs)
+        self.right_motor.config_kD(self.kPIDLoopIdx, self.kD, self.kTimeoutMs)
+        self.right_motor.config_kI(self.kPIDLoopIdx, self.kI, self.kTimeoutMs)
+
+        self.right_tgt = 0
+        self.left_tgt = 0
         self.hang_mode = ControlMode.PercentOutput
         self.max_speed = max_speed
         self.stop_point = stop_point
@@ -37,25 +46,32 @@ class Hang:
         self.kD = kD
         self.kI = kI
 
-        self.master_motor.config_kP(self.kPIDLoopIdx, self.kP, self.kTimeoutMs)
-        self.master_motor.config_kD(self.kPIDLoopIdx, self.kD, self.kTimeoutMs)
-        self.master_motor.config_kI(self.kPIDLoopIdx, self.kI, self.kTimeoutMs)
+        self.left_motor.config_kP(self.kPIDLoopIdx, self.kP, self.kTimeoutMs)
+        self.left_motor.config_kD(self.kPIDLoopIdx, self.kD, self.kTimeoutMs)
+        self.left_motor.config_kI(self.kPIDLoopIdx, self.kI, self.kTimeoutMs)
+
+        self.right_motor.config_kP(self.kPIDLoopIdx, self.kP, self.kTimeoutMs)
+        self.right_motor.config_kD(self.kPIDLoopIdx, self.kD, self.kTimeoutMs)
+        self.right_motor.config_kI(self.kPIDLoopIdx, self.kI, self.kTimeoutMs)
 
     def extend(self):
         """Extends hang"""
-        self.hang_tgt = self.stop_point
-        self.hang_mode = ControlMode.PercentOutput#ControlMode.Position
+        self.right_tgt = self.stop_point
+        self.left_tgt = self.stop_point
+        self.hang_mode = ControlMode.PercentOutput
 
-    def move(self, speed_mult = 1):
+    def move(self, left, right):
         """Moves hang"""
-        self.hang_tgt = self.max_speed * speed_mult
+        self.right_tgt = self.max_speed * right
+        self.left_tgt = self.max_speed * left
         self.hang_mode = ControlMode.PercentOutput
 
     def stop(self):
         """Stops hang"""
-        self.hang_tgt = 0
+        self.right_tgt = 0
+        self.left_tgt = 0
 
     def update(self):
         """Updates the values if they are changed"""
-        self.follower_motor.set(self.hang_mode, self.hang_tgt)
-        self.master_motor.set(self.hang_mode, self.hang_tgt)
+        self.right_motor.set(self.hang_mode, self.right_tgt)
+        self.left_motor.set(self.hang_mode, self.left_tgt)
