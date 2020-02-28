@@ -20,14 +20,6 @@ class Robot(wpilib.TimedRobot):
     ENCODER_COUNTS_PER_REV = 4096
     ENCODER_CONSTANT = (1/ENCODER_COUNTS_PER_REV) * WHEEL_CIRCUMFERENCE
 
-    AUTOS = {
-        "initiation-line": {
-            "power-port": 0,
-            "shield-generator": 1
-        },
-        "3-ball": 2
-    }
-
     def threshold(self, value, limit):
          if (abs(value) < limit):
              return 0
@@ -91,7 +83,7 @@ class Robot(wpilib.TimedRobot):
 
         # Setup the intake
         self.intake = Intake(7,0,1,0)
-        self.intakeToggle = ButtonDebouncer(self.operatorJoystick, 6) # [Y Button]
+        self.intakeToggle = ButtonDebouncer(self.operatorJoystick, 6) # [Right Bumper]
         self.intakeCollectToggle = ButtonDebouncer(self.operatorJoystick, 4) # [A Button]
         self.intakeCollectToggleOn = False
         self.intakeReverse = 1
@@ -101,22 +93,22 @@ class Robot(wpilib.TimedRobot):
         # Setup the transit
         self.transit = Transit(6)
         self.transitAxis = 1 # [Left Joystick Y Axis]
-        self.transitIndexSpeed = 0.1
+        self.transitIndexSpeed = 0.5
 
         # Setup the hang
         self.hang = Hang(8, 9, 0.3, 0.3)
-        self.hangAxis = 4
+        self.hangAxis = 2
         self.hangExtend = 5
 
         # Setup Master motors for each side
         self.leftMaster = WPI_TalonSRX(4) # Front left Motor
         self.leftMaster.setInverted(True)
-        self.leftMaster.setSensorPhase(False)
+        self.leftMaster.setSensorPhase(True)
         self.leftMaster.setNeutralMode(NeutralMode.Brake)
 
         self.rightMaster = WPI_TalonSRX(5) # Front right Motor
         self.rightMaster.setInverted(False)
-        self.rightMaster.setSensorPhase(False)
+        self.rightMaster.setSensorPhase(True)
         self.rightMaster.setNeutralMode(NeutralMode.Brake)
 
         # Setup Follower motors for each side
@@ -147,15 +139,9 @@ class Robot(wpilib.TimedRobot):
         CameraServer.launch()
 
         # AUTO SETUP
-        #self.autoSelector = SendableChooser()
-        #self.autoSelector.addOption("Initiation Line (Power Port)", self.AUTOS["initiation-line"]["power-port"])
-        #self.autoSelector.addOption("Initiation Line (Shield Generator)", self.AUTOS["initiation-line"]["shield-generator"])
-        #self.autoSelector.addOption("3 Ball", self.AUTOS["3-ball"])
-        #SmartDashboard.putData("Auto Selector", self.autoSelector)
-
         # Setup Talon PID constants
         # TODO: tune PID
-        self.kP = 0.05
+        self.kP = 0.085
         self.kD = 0
         self.kI = 0
 
@@ -176,13 +162,12 @@ class Robot(wpilib.TimedRobot):
         self.targetBottomHeight = 89.5 # in
         # TODO: Tune limelight PID
         self.aimKp = 0.02
-        self.distanceKp = 0.008
+        self.distanceKp = -0.01
         self.minAimCommand = 0.05
         self.distanceThreshold = 20
         self.angleThreshold = 5
 
         # Setup auto parameters
-        self.waitTime = 1.0
         self.depositTime = 0.75
         self.moveTime = 1.0
         #self.leftLeaveDist = 10_000 # encoder ticks
@@ -194,13 +179,13 @@ class Robot(wpilib.TimedRobot):
         #self.moveTimeSD = 
 
         # Initiation Line auto parameters
-        self.initiationLineDistance = 0.5 # meters
+        self.initiationLineDistance = 2.0 # meters
         self.initiationLineDistance /= self.ENCODER_CONSTANT
 
     def autonomousInit(self):
         """Called only at the beginning of autonomous mode."""
         # Setup auto state
-        self.selectedAuto = self.autoSelector.getSelected()
+        self.selectedAuto = SELECTED_AUTO
         self.autoState = "wait"
         self.timer.reset()
         self.timer.start()
@@ -224,21 +209,29 @@ class Robot(wpilib.TimedRobot):
         self.intake.stop()
         self.transit.stop()
         #self.hang.stop()
-
-        if self.selectedAuto == self.AUTOS["initiation-line"]["power-port"] or self.selectedAuto == self.AUTOS["initiation-line"]["shield-generator"]:
-            moveTgt = self.initiationLineDistance
-            if self.selectedAuto == self.AUTOS["initiation-line"]["power-port"]:
-                moveTgt *= 1
-            elif self.selectedAuto == self.AUTOS["initiation-line"]["shield-generator"]:
-                moveTgt *= -1
-            self.drive.tankDrive(moveTgt, moveTgt, ControlMode.Position)
-
-            self.sd.putNumber("Target", moveTgt)
-            self.sd.putNumber("Current", self.drive.getEncoderAverage())
-        elif self.selectedAuto == self.AUTOS["3-ball"]:
+        if self.selectedAuto == AUTOS["initiation-line"]["power-port"] or self.selectedAuto == AUTOS["initiation-line"]["shield-generator"]:
+            if self.autoState == "wait":
+                if self.timer.get() < WAIT_TIME:
+                    pass
+                else:
+                    self.autoState = "drive"
+            elif self.autoState == "drive":
+                moveTgt = self.initiationLineDistance
+                if self.selectedAuto == AUTOS["initiation-line"]["power-port"]:
+                    moveTgt *= 1
+                elif self.selectedAuto == AUTOS["initiation-line"]["shield-generator"]:
+                    moveTgt *= -1
+                if abs(self.drive.getEncoderAverage()) < abs(moveTgt):
+                    self.drive.tankDrive(moveTgt, moveTgt, ControlMode.Position)
+                else:
+                    self.autoState = "stop"
+            elif self.autoState == "stop":
+                self.drive.stop()
+        
+        elif self.selectedAuto == AUTOS["3-ball"]:
             if self.autoState == "wait":
                 self.limelight.setLedMode(LIMELIGHT_LED_OFF)
-                if self.timer.get() < self.waitTime:
+                if self.timer.get() < WAIT_TIME:
                     pass
                 else:
                     self.autoState = "align"
@@ -281,7 +274,7 @@ class Robot(wpilib.TimedRobot):
             elif self.autoState == "leave":
                 self.limelight.setLedMode(LIMELIGHT_LED_OFF)
                 if self.timer.get() < self.leaveTime:
-                    self.drive.tankDrive(0.33, 1.0, ControlMode.PercentOutput)
+                    self.drive.tankDrive(0.2, 0.6, ControlMode.PercentOutput)
                 else:
                     self.autoState = "back"
                     self.timer.reset()
@@ -300,6 +293,7 @@ class Robot(wpilib.TimedRobot):
         self.intake.update()
         self.transit.update()
         #self.hang.update()
+        self.sd.putString("Auto State", self.autoState)
 
     def teleopInit(self):
         """Called only at the beginning of teleop mode."""
@@ -357,12 +351,9 @@ class Robot(wpilib.TimedRobot):
         # * A static speed for extending
         # * A variable speed based on the joystick for retracting
         # NOTE: Because the motor is turning the same direction in both modes, they can be used interchangeably until an encoder is installed 
+        self.hang.move(self.operatorJoystick.getRawAxis(self.hangAxis))
         if self.operatorJoystick.getRawButton(self.hangExtend):
             self.hang.extend()
-        elif hangSpeed > 0.1:
-            self.hang.move(self.operatorJoystick.getRawAxis(self.hangAxis))
-        else:
-            self.hang.stop()
 
         # DRIVE CODE
         # Check if stop robot button is pressed
@@ -387,7 +378,17 @@ class Robot(wpilib.TimedRobot):
         self.hang.update()
         # NOTE: If auto-alignment to the loading bay is added, this will need to be moved so that the LED can turn on during use
         self.limelight.setLedMode(LIMELIGHT_LED_OFF)
-        
-    
+
+AUTOS = {
+    "initiation-line": {
+        "power-port": 0,
+        "shield-generator": 1
+    },
+    "3-ball": 2
+}
+
+SELECTED_AUTO = 2
+WAIT_TIME = 0.0
+
 if __name__ == "__main__":
     wpilib.run(Robot)
