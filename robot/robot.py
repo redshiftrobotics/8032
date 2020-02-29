@@ -4,6 +4,7 @@ from wpilib import DriverStation
 from wpilib import SendableChooser
 from wpilib import SmartDashboard
 from wpilib import CameraServer
+from wpilib import ADXRS450_Gyro
 from networktables import NetworkTables
 from robotpy_ext.control.button_debouncer import ButtonDebouncer
 from ctre import WPI_TalonSRX, ControlMode, NeutralMode, FeedbackDevice, FollowerType, FeedbackDevice
@@ -63,7 +64,9 @@ class Robot(wpilib.TimedRobot):
         self.tSpeed = 2.0/3.0
 
         # Smart Dashboard
-        self.sd = NetworkTables.getTable('SmartDashboard')
+        self.autoTabSD = NetworkTables.getTable('Auto')
+        self.teleopTabSD = NetworkTables.getTable('Teleop')
+        self.debugTabSD = NetworkTables.getTable('Debug')
 
         # joystick 0 on the driver station
         self.driverJoystickLeftNumber = 0
@@ -136,7 +139,11 @@ class Robot(wpilib.TimedRobot):
             self.kTimeoutMs,
         )
 
+        # Setup Gyro
+        self.gyro = ADXRS450_Gyro()
+
         # Start camera server
+        # NOTE: cscore needs to be manually installed on the roborio for this to work
         CameraServer.launch()
 
         # AUTO SETUP
@@ -169,6 +176,7 @@ class Robot(wpilib.TimedRobot):
         self.angleThreshold = 5
 
         # Setup auto parameters
+        # 3 Ball auto parameters
         self.depositTime = 0.75
         self.moveTime = 1.0
         #self.leftLeaveDist = 10_000 # encoder ticks
@@ -177,16 +185,35 @@ class Robot(wpilib.TimedRobot):
         self.backwardsTime = 1.0
         self.leaveThreshold = 50
 
-        #self.moveTimeSD = 
-
         # Initiation Line auto parameters
         self.initiationLineDistance = 2.0 # meters
         self.initiationLineDistance /= self.ENCODER_CONSTANT
 
+        # Create ShuffleBoard Widgets
+        self.debugTabSD.putBoolean("Retract Hang", False)
+        
+        self.autoTabSD.putNumber("Auto Wait Time", 0)
+        self.autoTabSD.putString("Auto State", "wait")
+        self.autoTabSD.putNumber("Left Encoder", 0)
+        self.autoTabSD.putNumber("Left Target", 0)
+        self.autoTabSD.putNumber("Right Encoder", 0)
+        self.autoTabSD.putNumber("Right Target", 0)
+        self.autoTabSD.putNumber("Missed Frames", 0)
+        self.autoTabSD.putBoolean("Power Port Visible", 0)
+
+        self.autoSelector = SendableChooser()
+        self.autoSelector.addOption("IL Power Port", AUTOS["initiation-line"]["power-port"])
+        self.autoSelector.addOption("IL Shield Generator", AUTOS["initiation-line"]["shield-generator"])
+        self.autoSelector.addOption("3 Ball", AUTOS["3-ball"])
+        self.autoSelector.setDefaultOption("3 Ball", AUTOS["3-ball"])
+        SmartDashboard.putData(self.autoSelector)
+
+
     def autonomousInit(self):
         """Called only at the beginning of autonomous mode."""
         # Setup auto state
-        self.selectedAuto = SELECTED_AUTO
+        self.selectedAuto = self.autoSelector.getSelected()
+        self.waitTime = self.autoTabSD.getNumber("Auto Wait Time", 0)
         self.autoState = "wait"
         self.timer.reset()
         self.timer.start()
@@ -213,7 +240,7 @@ class Robot(wpilib.TimedRobot):
         # Run the selected auto
         if self.selectedAuto == AUTOS["initiation-line"]["power-port"] or self.selectedAuto == AUTOS["initiation-line"]["shield-generator"]:
             if self.autoState == "wait":
-                if self.timer.get() < WAIT_TIME:
+                if self.timer.get() < self.waitTime:
                     pass
                 else:
                     self.autoState = "drive"
@@ -233,7 +260,7 @@ class Robot(wpilib.TimedRobot):
         elif self.selectedAuto == AUTOS["3-ball"]:
             if self.autoState == "wait":
                 self.limelight.setLedMode(LIMELIGHT_LED_OFF)
-                if self.timer.get() < WAIT_TIME:
+                if self.timer.get() < self.waitTime:
                     pass
                 else:
                     self.autoState = "align"
@@ -295,7 +322,13 @@ class Robot(wpilib.TimedRobot):
         self.intake.update()
         self.transit.update()
 
-        self.sd.putString("Auto State", self.autoState)
+        self.autoTabSD.putString("Auto State", self.autoState)
+        self.autoTabSD.putNumber("Left Encoder", self.drive.getLeftEncoder())
+        self.autoTabSD.putNumber("Left Target", self.drive.leftSpeed)
+        self.autoTabSD.putNumber("Right Encoder", self.drive.getRightEncoder())
+        self.autoTabSD.putNumber("Right Target", self.drive.rightSpeed)
+        self.autoTabSD.putNumber("Missed Frames", self.missedFrames)
+        self.autoTabSD.putBoolean("Power Port Visible", self.limelight.getTV())
 
     def teleopInit(self):
         """Called only at the beginning of teleop mode."""
@@ -304,6 +337,9 @@ class Robot(wpilib.TimedRobot):
 
         # Turn off the limelight LED
         self.limelight.setLedMode(LIMELIGHT_LED_OFF)
+
+        # Reset ShuffleBoard Widgets
+        self.debugTabSD.putBoolean("Retract Hang", False)
 
     def teleopPeriodic(self):
         """Called every 20ms in autonomous mode."""
@@ -348,6 +384,10 @@ class Robot(wpilib.TimedRobot):
         # Update each side of the hang to move based on the corresponding joystick trigger
         self.hang.move(self.operatorJoystick.getRawAxis(self.hangLeftAxis), self.operatorJoystick.getRawAxis(self.hangRightAxis))
 
+        # Retract the hang if the corresponding button on ShuffleBoard is pressed
+        if self.autoTabSD.getBoolean("Retract Hang", False):
+            self.hang.retract()
+
         # DRIVE CODE
         # Check if stop robot button is pressed
         if self.driverJoystickRight.getRawButton(self.stopButton):
@@ -360,8 +400,8 @@ class Robot(wpilib.TimedRobot):
                 self.speed = 1.0
 
             # Get turn and movement speeds
-            tAxis = self.threshold(self.driverJoystickLeft.getRawAxis(0), 0.05) * self.tSpeed * self.speed
-            xAxis = self.threshold(self.driverJoystickRight.getRawAxis(1), 0.05) * self.xSpeed * self.speed
+            tAxis = -self.threshold(self.driverJoystickLeft.getRawAxis(0), 0.05) * self.tSpeed * self.speed
+            xAxis = -self.threshold(self.driverJoystickRight.getRawAxis(1), 0.05) * self.xSpeed * self.speed
             self.drive.arcadeDrive(xAxis, tAxis, ControlMode.PercentOutput)
 
         # UPDATE CODE
@@ -372,6 +412,10 @@ class Robot(wpilib.TimedRobot):
         # NOTE: If auto-alignment to the loading bay is added, this will need to be moved so that the LED can turn on during use
         self.limelight.setLedMode(LIMELIGHT_LED_OFF)
 
+        self.teleopTabSD.putNumber("Balls", 0)
+        #self.teleopTabSD.putNumber("Gyro", self.gyro.getAngle())
+
+
 AUTOS = {
     "initiation-line": {
         "power-port": 0,
@@ -379,9 +423,6 @@ AUTOS = {
     },
     "3-ball": 2
 }
-
-SELECTED_AUTO = 2
-WAIT_TIME = 0.0
 
 if __name__ == "__main__":
     wpilib.run(Robot)

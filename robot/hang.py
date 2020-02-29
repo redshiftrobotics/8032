@@ -54,10 +54,10 @@ class Hang:
         self.right_motor.config_kD(self.kPIDLoopIdx, self.kD, self.kTimeoutMs)
         self.right_motor.config_kI(self.kPIDLoopIdx, self.kI, self.kTimeoutMs)
 
-    def extend(self):
-        """Extends hang"""
-        self.right_tgt = self.stop_point
-        self.left_tgt = self.stop_point
+    def retract(self):
+        """Retracts hang"""
+        self.right_tgt = -self.max_speed
+        self.left_tgt = -self.max_speed
         self.hang_mode = ControlMode.PercentOutput
 
     def move(self, left, right):

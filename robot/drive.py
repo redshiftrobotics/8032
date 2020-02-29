@@ -32,6 +32,12 @@ class Drive:
     def getEncoderAverage(self):
         return (self.leftMaster.getSelectedSensorPosition() + self.rightMaster.getSelectedSensorPosition())/2
     
+    def getLeftEncoder(self):
+        return self.leftMaster.getSelectedSensorPosition()
+
+    def getRightEncoder(self):
+        return self.rightMaster.getSelectedSensorPosition()
+    
     def stop(self):
         self.leftSpeed = 0
         self.rightSpeed = 0
