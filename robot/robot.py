@@ -9,7 +9,7 @@ from networktables import NetworkTables
 from robotpy_ext.control.button_debouncer import ButtonDebouncer
 from ctre import WPI_TalonSRX, ControlMode, NeutralMode, FeedbackDevice, FollowerType, FeedbackDevice
 import math
-
+import config
 from intake import Intake
 from transit import Transit
 from hang import Hang
@@ -43,25 +43,18 @@ class Robot(wpilib.TimedRobot):
             distanceError = targetDistance - self.limelight.getDistance(targetHeight)
 
             if tx > 1.0: 
-                steeringAdjust = self.aimKp * headingError#- self.minAimCommand
+                steeringAdjust = config.limeLight.aimKp * headingError#- config.limeLight.minAimCommand
             elif tx < 1.0:
-                steeringAdjust = self.aimKp * headingError#+ self.minAimCommand
+                steeringAdjust = config.limeLight.aimKp * headingError#+ config.limeLight.minAimCommand
 
-            distanceAdjust = self.distanceKp * distanceError
+            distanceAdjust = distanceKp * distanceError
         else:
-            steeringAdjust = 10.0 * self.aimKp
+            steeringAdjust = 10.0 * config.limeLight.aimKp
 
         return distanceAdjust, steeringAdjust
 
     def robotInit(self):
-        self.kSlotIdx = 0
-        self.kPIDLoopIdx = 0
-        self.kTimeoutMs = 10
         
-        # Sets the speed
-        self.speed = 1.0
-        self.xSpeed = 1.0
-        self.tSpeed = 2.0/3.0
 
         # Smart Dashboard
         self.autoTabSD = NetworkTables.getTable('Auto')
@@ -69,15 +62,11 @@ class Robot(wpilib.TimedRobot):
         self.debugTabSD = NetworkTables.getTable('Debug')
 
         # joystick 0 on the driver station
-        self.driverJoystickLeftNumber = 0
-        self.driverJoystickRightNumber = 1
-        self.operatorJoystickNumber = 2
-        self.driverJoystickLeft = wpilib.Joystick(self.driverJoystickLeftNumber)
-        self.driverJoystickRight = wpilib.Joystick(self.driverJoystickRightNumber)
-        self.operatorJoystick = wpilib.Joystick(self.operatorJoystickNumber)
-        self.halfSpeedButton = 2 # [Thumb Left]
-        self.stopButton = 1 # [Trigger]
-        
+       
+        self.driverJoystickLeft = wpilib.Joystick(config.joystick.driverJoystickLeftNumber)
+        self.driverJoystickRight = wpilib.Joystick(config.joystick.driverJoystickRightNumber)
+        config.joystick.operatorJoystick = wpilib.Joystick(config.joystick.operatorJoystick)
+       
         # Create a simple timer
         self.timer = wpilib.Timer()
 
@@ -86,42 +75,34 @@ class Robot(wpilib.TimedRobot):
 
         # Setup the intake
         self.intake = Intake(7,0,1,0)
-        self.intakeToggle = ButtonDebouncer(self.operatorJoystick, 6) # [Right Bumper]
-        self.intakeCollectToggle = ButtonDebouncer(self.operatorJoystick, 4) # [A Button]
-        self.intakeCollectToggleOn = False
-        self.intakeReverse = 1
-        self.intakeForward = 4
-        self.baseIntakeSpeed = 0.4
-
+        self.intakeToggle = ButtonDebouncer(config.joystick.operatorJoystick, 6) # [Right Bumper]
+        self.intakeCollectToggle = ButtonDebouncer(config.joystick.operatorJoystick, 4) # [A Button]
+        config.intake.intakeCollectToggleOn = False
+    
         # Setup the transit
-        self.transit = Transit(6)
-        self.transitAxis = 1 # [Left Joystick Y Axis]
-        self.transitIndexSpeed = 0.5
+        self.transit = Transit(config.transit.port)
 
         # Setup the hang
-        self.hang = Hang(8, 9, 0.3, 0.3)
-        self.hangLeftAxis = 2
-        self.hangRightAxis = 3
-        self.hangExtend = 5
-
+        self.hang = Hang(config.hang.leftMotor_ID, config.hang.rightMotor_ID, config.hang.stopPoint, config.hang.maxSpeed)
+      
         # Setup Master motors for each side
-        self.leftMaster = WPI_TalonSRX(4) # Front left Motor
+        self.leftMaster = WPI_TalonSRX(config.motors.leftMaster) # Front left Motor
         self.leftMaster.setInverted(True)
         self.leftMaster.setSensorPhase(True)
         self.leftMaster.setNeutralMode(NeutralMode.Brake)
 
-        self.rightMaster = WPI_TalonSRX(5) # Front right Motor
+        self.rightMaster = WPI_TalonSRX(config.motors.rightMaster) # Front right Motor
         self.rightMaster.setInverted(False)
         self.rightMaster.setSensorPhase(True)
         self.rightMaster.setNeutralMode(NeutralMode.Brake)
 
         # Setup Follower motors for each side
-        self.leftAlt = WPI_TalonSRX(2) # Back left motor
+        self.leftAlt = WPI_TalonSRX(config.motors.leftAlt) # Back left motor
         self.leftAlt.setInverted(True)
         self.leftAlt.follow(self.leftMaster)
         self.leftAlt.setNeutralMode(NeutralMode.Brake)
 
-        self.rightAlt = WPI_TalonSRX(3) # Back right motor
+        self.rightAlt = WPI_TalonSRX(config.motors.rightAlt) # Back right motor
         self.rightAlt.setInverted(False)
         self.rightAlt.follow(self.rightMaster)
         self.rightAlt.setNeutralMode(NeutralMode.Brake)
@@ -129,14 +110,14 @@ class Robot(wpilib.TimedRobot):
         # Setup encoders
         self.leftMaster.configSelectedFeedbackSensor(
             FeedbackDevice.CTRE_MagEncoder_Relative,
-            self.kPIDLoopIdx,
-            self.kTimeoutMs,
+            config.MISC.kPIDLoopIdx,
+            config.MISC.kTimeoutMs,
         )
 
         self.rightMaster.configSelectedFeedbackSensor(
             FeedbackDevice.CTRE_MagEncoder_Relative,
-            self.kPIDLoopIdx,
-            self.kTimeoutMs,
+            config.MISC.kPIDLoopIdx,
+            config.MISC.kTimeoutMs,
         )
 
         # Setup Gyro
@@ -146,48 +127,24 @@ class Robot(wpilib.TimedRobot):
         # NOTE: cscore needs to be manually installed on the roborio for this to work
         CameraServer.launch()
 
-        # AUTO SETUP
-        # Setup Talon PID constants
-        # TODO: tune PID
-        self.kP = 0.085
-        self.kD = 0
-        self.kI = 0
+       
 
-        self.leftMaster.config_kP(self.kPIDLoopIdx,self.kP,self.kTimeoutMs)
-        self.leftMaster.config_kD(self.kPIDLoopIdx,self.kD,self.kTimeoutMs)
-        self.leftMaster.config_kI(self.kPIDLoopIdx,self.kI,self.kTimeoutMs)
+        self.leftMaster.config_kP(config.MISC.kPIDLoopIdx,config.motors.kP,config.MISC.kTimeoutMs)
+        self.leftMaster.config_kD(config.MISC.kPIDLoopIdx,config.motors.kD,config.MISC.kTimeoutMs)
+        self.leftMaster.config_kI(config.MISC.kPIDLoopIdx,config.motors.kI,config.MISC.kTimeoutMs)
 
-        self.rightMaster.config_kP(self.kPIDLoopIdx,self.kP,self.kTimeoutMs)
-        self.rightMaster.config_kD(self.kPIDLoopIdx,self.kD,self.kTimeoutMs)
-        self.rightMaster.config_kI(self.kPIDLoopIdx,self.kI,self.kTimeoutMs)
+        self.rightMaster.config_kP(config.MISC.kPIDLoopIdx,config.motors.kP,config.MISC.kTimeoutMs)
+        self.rightMaster.config_kD(config.MISC.kPIDLoopIdx,config.motors.kD,config.MISC.kTimeoutMs)
+        self.rightMaster.config_kI(config.MISC.kPIDLoopIdx,config.motors.kI,config.MISC.kTimeoutMs)
 
         # Setup Differential Drive
         self.drive = Drive(self.leftMaster, self.rightMaster, self.rightAlt, self.leftAlt)
 
         # Setup Limelight
         self.limelight = LimeLight()
-        self.targetDistance = 15.0 # in
-        self.targetBottomHeight = 89.5 # in
-        # TODO: Tune limelight PID
-        self.aimKp = 0.02
-        self.distanceKp = -0.01
-        self.minAimCommand = 0.05
-        self.distanceThreshold = 20
-        self.angleThreshold = 5
+       
 
-        # Setup auto parameters
-        # 3 Ball auto parameters
-        self.depositTime = 0.75
-        self.moveTime = 1.0
-        #self.leftLeaveDist = 10_000 # encoder ticks
-        #self.rightLeaveDist = 5_000# encoder ticks
-        self.leaveTime = 0.7
-        self.backwardsTime = 1.0
-        self.leaveThreshold = 50
-
-        # Initiation Line auto parameters
-        self.initiationLineDistance = 2.0 # meters
-        self.initiationLineDistance /= self.ENCODER_CONSTANT
+        config.auto.initiationLineDistance /= self.ENCODER_CONSTANT
 
         # Create ShuffleBoard Widgets
         self.debugTabSD.putBoolean("Retract Hang", False)
@@ -219,8 +176,8 @@ class Robot(wpilib.TimedRobot):
         self.timer.start()
 
         # Setup Encoders
-        self.leftMaster.setSelectedSensorPosition(0, self.kPIDLoopIdx, self.kTimeoutMs)
-        self.rightMaster.setSelectedSensorPosition(0, self.kPIDLoopIdx, self.kTimeoutMs)
+        self.leftMaster.setSelectedSensorPosition(0, config.MISC.kPIDLoopIdx, config.MISC.kTimeoutMs)
+        self.rightMaster.setSelectedSensorPosition(0, config.MISC.kPIDLoopIdx, config.MISC.kTimeoutMs)
 
         # Turn off the limelight LED
         self.limelight.setLedMode(LIMELIGHT_LED_ON)
@@ -245,7 +202,7 @@ class Robot(wpilib.TimedRobot):
                 else:
                     self.autoState = "drive"
             elif self.autoState == "drive":
-                moveTgt = self.initiationLineDistance
+                moveTgt = config.auto.initiationLineDistance
                 if self.selectedAuto == AUTOS["initiation-line"]["power-port"]:
                     moveTgt *= 1
                 elif self.selectedAuto == AUTOS["initiation-line"]["shield-generator"]:
@@ -269,17 +226,17 @@ class Robot(wpilib.TimedRobot):
                 if self.limelight.getTV() > 0:
                     distError = self.limelight.getDistance(self.targetBottomHeight)
                     if distError is not None:
-                        distError -= self.targetDistance
+                        distError -= config.limeLight.targetDistance
                         angleError = self.limelight.getTX()
 
                         # Check if the robot is aligned
-                        if ((distError < self.distanceThreshold) and (angleError < self.angleThreshold)):
+                        if ((distError < config.limeLight.distanceThreshold) and (angleError < self.angleThreshold)):
                             self.limelight.setLedMode(LIMELIGHT_LED_OFF)
                             self.timer.reset()
                             self.autoState = "move"
                         # If not continue aligning
                         else:
-                            x, t = self.align(self.targetDistance, self.targetBottomHeight)
+                            x, t = self.align(config.limeLight.targetDistance, self.targetBottomHeight)
                             self.drive.arcadeDrive(x, t, ControlMode.PercentOutput)
                 else:
                     self.missedFrames += 1
@@ -288,28 +245,28 @@ class Robot(wpilib.TimedRobot):
                     self.autoState = "move"
             elif self.autoState == "move":
                 self.limelight.setLedMode(LIMELIGHT_LED_OFF)
-                if self.timer.get() < self.moveTime:
+                if self.timer.get() < config.auto.moveTime:
                     self.drive.arcadeDrive(-0.7, 0.2, ControlMode.PercentOutput)
                 else:
                     self.timer.reset()
                     self.autoState = "deposit"
             elif self.autoState == "deposit":
                 self.limelight.setLedMode(LIMELIGHT_LED_OFF)
-                if self.timer.get() < self.depositTime:
+                if self.timer.get() < config.auto.depositTime:
                     self.transit.backward()
                 else:
                     self.timer.reset()
                     self.autoState = "leave"
             elif self.autoState == "leave":
                 self.limelight.setLedMode(LIMELIGHT_LED_OFF)
-                if self.timer.get() < self.leaveTime:
+                if self.timer.get() < config.auto.leaveTime:
                     self.drive.tankDrive(0.2, 0.6, ControlMode.PercentOutput)
                 else:
                     self.autoState = "back"
                     self.timer.reset()
             elif self.autoState == "back":
                 self.limelight.setLedMode(LIMELIGHT_LED_OFF)
-                if self.timer.get() < self.backwardsTime:
+                if self.timer.get() < config.auto.backwardsTime:
                     self.drive.arcadeDrive(0.5, 0, ControlMode.PercentOutput)
                 else:
                     self.timer.reset()
@@ -351,30 +308,29 @@ class Robot(wpilib.TimedRobot):
         
         # Keep track of the intake toggle state
         if self.intakeCollectToggle.get():
-           self.intakeCollectToggleOn = not self.intakeCollectToggleOn
-
+           config.intake.intakeCollectToggleOn = not config.intake.intakeCollectToggleOn
         # Update the direction of the intake based on whether the forward toggle is on, 
         #   or the back button is pressed
         # Update the speed of the intake based on the driving direction of the robot
-        if self.operatorJoystick.getRawButton(self.intakeReverse):
-            self.intake.speed(-self.baseIntakeSpeed)
+        if config.joystick.operatorJoystick.getRawButton(config.intake.intakeReverse):
+            self.intake.speed(-config.intake.baseIntakeSpeed)
             self.intake.enable_collect()
-        elif self.intakeCollectToggleOn:
+        elif config.intake.intakeCollectToggleOn:
            robotDirection = self.leftMaster.get() + self.rightMaster.get()
            if robotDirection < 0:
-               self.intake.speed(self.baseIntakeSpeed+0.5)
+               self.intake.speed(config.intake.baseIntakeSpeed+0.5)
            else:
-               self.intake.speed(self.baseIntakeSpeed)
+               self.intake.speed(config.intake.baseIntakeSpeed)
            self.intake.enable_collect()
         else:
             self.intake.disable_collect()
         
         # TRANSIT CODE
         # Update the transit speed based on joystick
-        self.transit.speed(self.threshold(self.operatorJoystick.getRawAxis(self.transitAxis), 0.05))
+        self.transit.speed(self.threshold(config.joystick.operatorJoystick.getRawAxis(config.transit.transitAxis), 0.05))
 
         # Update transit based on D-PAD for indexing
-        rightPOV = self.operatorJoystick.getPOV(0)
+        rightPOV = config.joystick.operatorJoystick.getPOV(0)
         if rightPOV == 0:
             self.transit.speed(self.transitIndexSpeed)
         elif rightPOV == 180:
@@ -382,7 +338,7 @@ class Robot(wpilib.TimedRobot):
 
         # HANG CODE
         # Update each side of the hang to move based on the corresponding joystick trigger
-        self.hang.move(self.operatorJoystick.getRawAxis(self.hangLeftAxis), self.operatorJoystick.getRawAxis(self.hangRightAxis))
+        self.hang.move(config.joystick.operatorJoystick.getRawAxis(config.hang.hangLeftAxis), config.joystick.operatorJoystick.getRawAxis(config.hang.hangRightAxis))
 
         # Retract the hang if the corresponding button on ShuffleBoard is pressed
         if self.autoTabSD.getBoolean("Retract Hang", False):
@@ -390,18 +346,18 @@ class Robot(wpilib.TimedRobot):
 
         # DRIVE CODE
         # Check if stop robot button is pressed
-        if self.driverJoystickRight.getRawButton(self.stopButton):
+        if self.driverJoystickRight.getRawButton(config.joystick.stopButton):
             self.drive.arcadeDrive(0,0, ControlMode.PercentOutput)
         else:
             # Set the max speed of the robot
-            if self.driverJoystickRight.getRawButton(self.halfSpeedButton):
-                self.speed = 0.5
+            if self.driverJoystickRight.getRawButton(config.joystick.halfSpeedButton):
+                config.speed.speed = 0.5
             else:
-                self.speed = 1.0
+                config.speed.speed = 1.0
 
             # Get turn and movement speeds
-            tAxis = -self.threshold(self.driverJoystickLeft.getRawAxis(0), 0.05) * self.tSpeed * self.speed
-            xAxis = -self.threshold(self.driverJoystickRight.getRawAxis(1), 0.05) * self.xSpeed * self.speed
+            tAxis = -self.threshold(self.driverJoystickLeft.getRawAxis(0), 0.05) * config.speed.tSpeed * config.speed.speed
+            xAxis = -self.threshold(self.driverJoystickRight.getRawAxis(1), 0.05) * config.speed.xSpeed * config.speed.speed
             self.drive.arcadeDrive(xAxis, tAxis, ControlMode.PercentOutput)
 
         # UPDATE CODE
