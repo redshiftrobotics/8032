@@ -10,7 +10,7 @@
         "hgap": 16.0,
         "vgap": 16.0,
         "tiles": {
-          "1,6": {
+          "1,5": {
             "size": [
               5,
               2
@@ -42,7 +42,7 @@
               "_source0": "network_table:///Auto/Missed Frames",
               "_title": "Missed Frames",
               "Range/Min": 0.0,
-              "Range/Max": 75.0,
+              "Range/Max": 150.0,
               "Visuals/Show value": true
             }
           },
@@ -70,14 +70,14 @@
               "Layout/Label position": "TOP",
               "_children": [
                 {
-                  "_type": "ComboBox Chooser",
-                  "_source0": "network_table:///SmartDashboard/SendableChooser[0]",
-                  "_title": "Auto Selector"
-                },
-                {
                   "_type": "Text View",
                   "_source0": "network_table:///Auto/Auto Wait Time",
                   "_title": "Auto Wait Time"
+                },
+                {
+                  "_type": "ComboBox Chooser",
+                  "_source0": "network_table:///SmartDashboard/SendableChooser[0]",
+                  "_title": "Auto Selector"
                 }
               ]
             }
@@ -91,24 +91,6 @@
               "_type": "Text View",
               "_source0": "network_table:///Auto/Right Encoder",
               "_title": "Right Encoder"
-            }
-          },
-          "7,0": {
-            "size": [
-              11,
-              9
-            ],
-            "content": {
-              "_type": "Camera Stream",
-              "_title": "Camera Stream",
-              "Crosshair/Show crosshair": false,
-              "Crosshair/Crosshair color": "#FFFFFFFF",
-              "Controls/Show controls": false,
-              "Controls/Rotation": "NONE",
-              "compression": 100.0,
-              "fps": -1,
-              "imageWidth": -1,
-              "imageHeight": -1
             }
           },
           "18,7": {
@@ -131,6 +113,25 @@
               "_type": "Text View",
               "_source0": "network_table:///Auto/Right Target",
               "_title": "Right Target"
+            }
+          },
+          "7,0": {
+            "size": [
+              11,
+              9
+            ],
+            "content": {
+              "_type": "Camera Stream",
+              "_source0": "camera_server://limelight",
+              "_title": "limelight",
+              "Crosshair/Show crosshair": false,
+              "Crosshair/Crosshair color": "#FFFFFFFF",
+              "Controls/Show controls": false,
+              "Controls/Rotation": "NONE",
+              "compression": -1.0,
+              "fps": -1,
+              "imageWidth": 0,
+              "imageHeight": 0
             }
           }
         }
@@ -156,38 +157,6 @@
               "_title": "Basic FMS Info"
             }
           },
-          "0,0": {
-            "size": [
-              9,
-              9
-            ],
-            "content": {
-              "_type": "Camera Stream",
-              "_title": "Camera Stream",
-              "Crosshair/Show crosshair": false,
-              "Crosshair/Crosshair color": "#FFFFFFFF",
-              "Controls/Show controls": false,
-              "Controls/Rotation": "NONE",
-              "compression": -1.0,
-              "fps": -1,
-              "imageWidth": -1,
-              "imageHeight": -1
-            }
-          },
-          "19,0": {
-            "size": [
-              9,
-              9
-            ],
-            "content": {
-              "_type": "Simple Dial",
-              "_source0": "network_table:///Teleop/Balls",
-              "_title": "Balls",
-              "Range/Min": 0.0,
-              "Range/Max": 5.0,
-              "Visuals/Show value": true
-            }
-          },
           "10,3": {
             "size": [
               8,
@@ -209,6 +178,50 @@
               "_source0": "network_table:///FMSInfo/FMSControlData",
               "_title": "/FMSInfo/FMSControlData"
             }
+          },
+          "0,0": {
+            "size": [
+              9,
+              9
+            ],
+            "content": {
+              "_type": "Camera Stream",
+              "_source0": "camera_server://USB Camera 0",
+              "_title": "USB Camera 0",
+              "Crosshair/Show crosshair": false,
+              "Crosshair/Crosshair color": "#FFFFFFFF",
+              "Controls/Show controls": false,
+              "Controls/Rotation": "NONE",
+              "compression": -1.0,
+              "fps": -1,
+              "imageWidth": 0,
+              "imageHeight": 0
+            }
+          },
+          "19,0": {
+            "size": [
+              9,
+              9
+            ],
+            "content": {
+              "_type": "Simple Dial",
+              "_source0": "network_table:///Main/Balls",
+              "_title": "Main/Balls",
+              "Range/Min": 0.0,
+              "Range/Max": 5.0,
+              "Visuals/Show value": true
+            }
+          },
+          "9,0": {
+            "size": [
+              2,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///Teleop/Balls",
+              "_title": "Balls"
+            }
           }
         }
       }
@@ -225,13 +238,35 @@
         "tiles": {
           "0,0": {
             "size": [
-              2,
+              3,
               1
             ],
             "content": {
               "_type": "Toggle Button",
-              "_source0": "network_table:///Debug/Retract Hang",
-              "_title": "Retract Hang"
+              "_source0": "network_table:///Debug/Retract Hang Left",
+              "_title": "Retract Hang Left"
+            }
+          },
+          "3,0": {
+            "size": [
+              3,
+              1
+            ],
+            "content": {
+              "_type": "Toggle Button",
+              "_source0": "network_table:///Debug/Retract Hang Right",
+              "_title": "Retract Hang Right"
+            }
+          },
+          "3,1": {
+            "size": [
+              3,
+              2
+            ],
+            "content": {
+              "_type": "PDP",
+              "_title": "PDP",
+              "Visuals/Show voltage and current values": true
             }
           }
         }

@@ -71,6 +71,12 @@ class Hang:
         self.right_tgt = 0
         self.left_tgt = 0
 
+    def left(self, l):
+        self.left_tgt = l
+    
+    def right(self, r):
+        self.right_tgt = r
+    
     def update(self):
         """Updates the values if they are changed"""
         self.right_motor.set(self.hang_mode, self.right_tgt)

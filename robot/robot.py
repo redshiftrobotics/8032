@@ -99,19 +99,20 @@ class Robot(wpilib.TimedRobot):
         self.transitIndexSpeed = 0.5
 
         # Setup the hang
-        self.hang = Hang(8, 9, 0.3, 0.3)
+        self.baseHangSpeed = 0.5
+        self.baseHangRetractSpeed = 0.2
+        self.hang = Hang(8, 9, self.baseHangSpeed, self.baseHangSpeed)
         self.hangLeftAxis = 2
         self.hangRightAxis = 3
-        self.hangExtend = 5
 
         # Setup Master motors for each side
         self.leftMaster = WPI_TalonSRX(4) # Front left Motor
-        self.leftMaster.setInverted(True)
+        self.leftMaster.setInverted(False)
         self.leftMaster.setSensorPhase(True)
         self.leftMaster.setNeutralMode(NeutralMode.Brake)
 
         self.rightMaster = WPI_TalonSRX(5) # Front right Motor
-        self.rightMaster.setInverted(False)
+        self.rightMaster.setInverted(True)
         self.rightMaster.setSensorPhase(True)
         self.rightMaster.setNeutralMode(NeutralMode.Brake)
 
@@ -149,7 +150,7 @@ class Robot(wpilib.TimedRobot):
         # AUTO SETUP
         # Setup Talon PID constants
         # TODO: tune PID
-        self.kP = 0.085
+        self.kP = 0.08
         self.kD = 0
         self.kI = 0
 
@@ -178,7 +179,7 @@ class Robot(wpilib.TimedRobot):
         # Setup auto parameters
         # 3 Ball auto parameters
         self.depositTime = 0.75
-        self.moveTime = 1.0
+        self.moveTime = 1.5
         #self.leftLeaveDist = 10_000 # encoder ticks
         #self.rightLeaveDist = 5_000# encoder ticks
         self.leaveTime = 0.7
@@ -190,8 +191,9 @@ class Robot(wpilib.TimedRobot):
         self.initiationLineDistance /= self.ENCODER_CONSTANT
 
         # Create ShuffleBoard Widgets
-        self.debugTabSD.putBoolean("Retract Hang", False)
-        
+        self.debugTabSD.putBoolean("Retract Hang Left", False)
+        self.debugTabSD.putBoolean("Retract Hang Right", False)
+
         self.autoTabSD.putNumber("Auto Wait Time", 0)
         self.autoTabSD.putString("Auto State", "wait")
         self.autoTabSD.putNumber("Left Encoder", 0)
@@ -207,6 +209,7 @@ class Robot(wpilib.TimedRobot):
         self.autoSelector.addOption("3 Ball", AUTOS["3-ball"])
         self.autoSelector.setDefaultOption("3 Ball", AUTOS["3-ball"])
         SmartDashboard.putData(self.autoSelector)
+        self.limelight.setLedMode(LIMELIGHT_LED_ON)
 
 
     def autonomousInit(self):
@@ -222,12 +225,16 @@ class Robot(wpilib.TimedRobot):
         self.leftMaster.setSelectedSensorPosition(0, self.kPIDLoopIdx, self.kTimeoutMs)
         self.rightMaster.setSelectedSensorPosition(0, self.kPIDLoopIdx, self.kTimeoutMs)
 
-        # Turn off the limelight LED
+        # Turn ON the limelight LED
         self.limelight.setLedMode(LIMELIGHT_LED_ON)
         self.missedFrames = 0
 
         # Setup the compressor
         self.compressor.start()
+
+        
+        self.leftMaster.setInverted(False)
+        self.rightMaster.setInverted(True)
 
     def autonomousPeriodic(self):
         """Called every 20ms in autonomous mode."""
@@ -259,13 +266,13 @@ class Robot(wpilib.TimedRobot):
         
         elif self.selectedAuto == AUTOS["3-ball"]:
             if self.autoState == "wait":
-                self.limelight.setLedMode(LIMELIGHT_LED_OFF)
+                #self.limelight.setLedMode(LIMELIGHT_LED_OFF)
                 if self.timer.get() < self.waitTime:
                     pass
                 else:
                     self.autoState = "align"
             elif self.autoState == "align":
-                self.limelight.setLedMode(LIMELIGHT_LED_ON)
+                #self.limelight.setLedMode(LIMELIGHT_LED_ON)
                 if self.limelight.getTV() > 0:
                     distError = self.limelight.getDistance(self.targetBottomHeight)
                     if distError is not None:
@@ -280,26 +287,26 @@ class Robot(wpilib.TimedRobot):
                         # If not continue aligning
                         else:
                             x, t = self.align(self.targetDistance, self.targetBottomHeight)
-                            self.drive.arcadeDrive(x, t, ControlMode.PercentOutput)
+                            self.drive.arcadeDrive(-x, t, ControlMode.PercentOutput)
                 else:
                     self.missedFrames += 1
                 if (self.missedFrames >= 75):
                     self.timer.reset()
                     self.autoState = "move"
             elif self.autoState == "move":
-                self.limelight.setLedMode(LIMELIGHT_LED_OFF)
+                #self.limelight.setLedMode(LIMELIGHT_LED_OFF)
                 if self.timer.get() < self.moveTime:
                     self.drive.arcadeDrive(-0.7, 0.2, ControlMode.PercentOutput)
                 else:
                     self.timer.reset()
                     self.autoState = "deposit"
             elif self.autoState == "deposit":
-                self.limelight.setLedMode(LIMELIGHT_LED_OFF)
+                #self.limelight.setLedMode(LIMELIGHT_LED_OFF)
                 if self.timer.get() < self.depositTime:
                     self.transit.backward()
                 else:
                     self.timer.reset()
-                    self.autoState = "leave"
+                    self.autoState = "leave" #### CHANGE LATER
             elif self.autoState == "leave":
                 self.limelight.setLedMode(LIMELIGHT_LED_OFF)
                 if self.timer.get() < self.leaveTime:
@@ -308,19 +315,21 @@ class Robot(wpilib.TimedRobot):
                     self.autoState = "back"
                     self.timer.reset()
             elif self.autoState == "back":
-                self.limelight.setLedMode(LIMELIGHT_LED_OFF)
+                #self.limelight.setLedMode(LIMELIGHT_LED_OFF)
                 if self.timer.get() < self.backwardsTime:
                     self.drive.arcadeDrive(0.5, 0, ControlMode.PercentOutput)
                 else:
                     self.timer.reset()
                     self.autoState = "stop"
             elif self.autoState == "stop":
-                self.limelight.setLedMode(LIMELIGHT_LED_OFF)
+                #self.limelight.setLedMode(LIMELIGHT_LED_OFF)
                 self.drive.stop()
         
         self.drive.update()
         self.intake.update()
         self.transit.update()
+        
+        self.limelight.setLedMode(LIMELIGHT_LED_ON)
 
         self.autoTabSD.putString("Auto State", self.autoState)
         self.autoTabSD.putNumber("Left Encoder", self.drive.getLeftEncoder())
@@ -328,7 +337,7 @@ class Robot(wpilib.TimedRobot):
         self.autoTabSD.putNumber("Right Encoder", self.drive.getRightEncoder())
         self.autoTabSD.putNumber("Right Target", self.drive.rightSpeed)
         self.autoTabSD.putNumber("Missed Frames", self.missedFrames)
-        self.autoTabSD.putBoolean("Power Port Visible", self.limelight.getTV())
+        self.autoTabSD.putBoolean("Power Port Visible", self.limelight.getTV() > 0)
 
     def teleopInit(self):
         """Called only at the beginning of teleop mode."""
@@ -339,7 +348,11 @@ class Robot(wpilib.TimedRobot):
         self.limelight.setLedMode(LIMELIGHT_LED_OFF)
 
         # Reset ShuffleBoard Widgets
-        self.debugTabSD.putBoolean("Retract Hang", False)
+        self.debugTabSD.putBoolean("Retract Hang Left", False)
+        self.debugTabSD.putBoolean("Retract Hang Right", False)
+        
+        self.leftMaster.setInverted(True)
+        self.rightMaster.setInverted(False)
 
     def teleopPeriodic(self):
         """Called every 20ms in autonomous mode."""
@@ -376,17 +389,20 @@ class Robot(wpilib.TimedRobot):
         # Update transit based on D-PAD for indexing
         rightPOV = self.operatorJoystick.getPOV(0)
         if rightPOV == 0:
-            self.transit.speed(self.transitIndexSpeed)
-        elif rightPOV == 180:
             self.transit.speed(-self.transitIndexSpeed)
+        elif rightPOV == 180:
+            self.transit.speed(self.transitIndexSpeed)
 
         # HANG CODE
+               
         # Update each side of the hang to move based on the corresponding joystick trigger
         self.hang.move(self.operatorJoystick.getRawAxis(self.hangLeftAxis), self.operatorJoystick.getRawAxis(self.hangRightAxis))
 
         # Retract the hang if the corresponding button on ShuffleBoard is pressed
-        if self.autoTabSD.getBoolean("Retract Hang", False):
-            self.hang.retract()
+        if self.debugTabSD.getBoolean("Retract Hang Left", False):
+            self.hang.left(-self.baseHangRetractSpeed)
+        if self.debugTabSD.getBoolean("Retract Hang Right", False):
+            self.hang.right(-self.baseHangRetractSpeed)
 
         # DRIVE CODE
         # Check if stop robot button is pressed
@@ -400,9 +416,10 @@ class Robot(wpilib.TimedRobot):
                 self.speed = 1.0
 
             # Get turn and movement speeds
-            tAxis = -self.threshold(self.driverJoystickLeft.getRawAxis(0), 0.05) * self.tSpeed * self.speed
+            tAxis = self.threshold(self.driverJoystickLeft.getRawAxis(0), 0.05) * self.tSpeed * self.speed
             xAxis = -self.threshold(self.driverJoystickRight.getRawAxis(1), 0.05) * self.xSpeed * self.speed
             self.drive.arcadeDrive(xAxis, tAxis, ControlMode.PercentOutput)
+
 
         # UPDATE CODE
         self.drive.update()
@@ -410,9 +427,7 @@ class Robot(wpilib.TimedRobot):
         self.transit.update()
         self.hang.update()
         # NOTE: If auto-alignment to the loading bay is added, this will need to be moved so that the LED can turn on during use
-        self.limelight.setLedMode(LIMELIGHT_LED_OFF)
-
-        self.teleopTabSD.putNumber("Balls", 0)
+        self.limelight.setLedMode(LIMELIGHT_LED_ON)
         #self.teleopTabSD.putNumber("Gyro", self.gyro.getAngle())
 
 
