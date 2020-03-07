@@ -32,6 +32,7 @@ cameras = []
 # Copyright Levi Sprung 2020
 def count_balls(img):
     """Counts the number of FRC power cells in an image"""
+<<<<<<< Updated upstream
     shifted = cv2.pyrMeanShiftFiltering(img, 21, 51)
     blurred = cv2.GaussianBlur(shifted, (11, 11), 0)
     hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
@@ -40,6 +41,17 @@ def count_balls(img):
 
     mask = cv2.erode(mask, None, iterations=20)
     mask = cv2.dilate(mask, None, iterations=20)
+=======
+     # shifted = cv2.pyrMeanShiftFiltering(img, 21, 51)
+    # blurred = cv2.GaussianBlur(shifted, (11, 11), 0)
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
+    mask = cv2.inRange(hsv, lower_yellow, upper_yellow)
+
+    mask = cv2.dilate(mask, None, iterations=8)
+    mask = cv2.erode(mask, None, iterations=25)
+    mask = cv2.dilate(mask, None, iterations=10)
+>>>>>>> Stashed changes
 
 
     D = ndimage.distance_transform_edt(mask)
@@ -48,8 +60,14 @@ def count_balls(img):
     markers = ndimage.label(local_max, structure = np.ones((3,3)))[0]
     labels = watershed(-D, markers, mask = mask)
     num_balls = len(np.unique(labels)) - 1
+<<<<<<< Updated upstream
 
     return num_balls
+=======
+    # print(num_balls)
+    return num_balls
+    
+>>>>>>> Stashed changes
 
 
 
