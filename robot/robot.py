@@ -15,6 +15,7 @@ from transit import Transit
 from hang import Hang
 from drive import Drive
 from limelight import LimeLight, LIMELIGHT_LED_OFF, LIMELIGHT_LED_ON
+from joystick_drive import joystick_drive
 
 class Robot(wpilib.TimedRobot):
     WHEEL_CIRCUMFERENCE = 0.1524 * math.pi # meters (6 inches)
@@ -353,6 +354,8 @@ class Robot(wpilib.TimedRobot):
         
         self.leftMaster.setInverted(True)
         self.rightMaster.setInverted(False)
+        
+        self.joystick_drive = joystick_drive(self.joystick, self.speed, self.ySpeed, self.tSpeed)
 
     def teleopPeriodic(self):
         """Called every 20ms in autonomous mode."""
