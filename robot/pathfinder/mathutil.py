@@ -17,3 +17,6 @@ def r2d(angleInRads):
 
 def d2r(angleInDegrees):
     return angleInDegrees * math.pi / 180
+
+def signum(num):
+    return math.copysign(1, num)

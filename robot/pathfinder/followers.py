@@ -1,14 +1,16 @@
 import math
 from pathfinder.utils import return_object
+from pathfinder.mathutil import signum
 
 class EncoderConfig:
-    def __init__(self, initial_position=0, ticks_per_revolution=0, wheel_circumference=0, kp=0, ki=0, kd=0, kv=0, ka=0):
+    def __init__(self, initial_position=0, ticks_per_revolution=0, wheel_circumference=0, kp=0, ki=0, kd=0, ks=0, kv=0, ka=0):
         self.initial_position = initial_position
         self.ticks_per_revolution = ticks_per_revolution
         self.wheel_circumference = wheel_circumference
         self.kp = kp
         self.ki = ki
         self.kd = kd
+        self.ks = ks
         self.kv = kv
         self.ka = ka
 
@@ -27,10 +29,11 @@ class EncoderFollower:
         self.tlen = len(trajectory)
         self.reset()
 
-    def configurePIDVA(self, kp, ki, kd, kv, ka):
+    def configurePIDSVA(self, kp, ki, kd, ks, kv, ka):
         self.cfg.kp = kp
         self.cfg.ki = ki
         self.cfg.kd = kd
+        self.cfg.ks = ks
         self.cfg.kv = kv
         self.cfg.ka = ka
 
@@ -86,7 +89,7 @@ def pathfinder_follow_encoder2(c, follower, s, trajectory_length, encoder_tick):
     
     error = s.position - distance_covered
     feedback_value = (c.kp * error) + (c.kd * ((error - follower.last_error) / s.dt))
-    feedforward_value = ((c.kv * s.velocity) + (c.ka * s.acceleration))
+    feedforward_value = ((c.ks * signum(s.velocity)) + (c.kv * s.velocity) + (c.ka * s.acceleration))
     calculated_value = feedback_value + feedforward_value
     
     follower.last_error = error

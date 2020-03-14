@@ -21,14 +21,15 @@ class Robot(wpilib.TimedRobot):
     WHEEL_CIRCUMFERENCE = 0.1524 * math.pi # meters (6 inches)
     DRIVE_WIDTH = 0.305473061 # meters (23 inches)
     ENCODER_COUNTS_PER_REV = 4096
-    KP = 0.028*2
-    KD = -0.011
+    KP = 0.028
     MAX_VELOCITY = 3.743381
     MAX_ACCELERATION = 22.355086
     KS = 1.08
-    DT = 0.01
+    KV = 5.99
+    KA = 0.717
+    DT = 0.02
+    ANGLE_CONSTANT = 0.01
     ENCODER_CONSTANT = (1/ENCODER_COUNTS_PER_REV) * WHEEL_CIRCUMFERENCE
-    SPEED_MULT = 1
 
     def threshhold(self, value, limit):
          if (abs(value) < limit):
@@ -114,8 +115,6 @@ class Robot(wpilib.TimedRobot):
 
         # Setup Gyro
         self.gyro = ADXRS450_Gyro()
-        self.ANGLE_CONSTANT = 0.02
-        self.sd.putNumber("Angle Constant", 0.02)
 
         # Setup the simulation
         if is_sim:
@@ -137,7 +136,6 @@ class Robot(wpilib.TimedRobot):
         """Called only at the beginning of autonomous mode."""
         # Reset Gyro
         self.gyro.reset()
-        self.ANGLE_CONSTANT = self.sd.getNumber("Angle Constant", 0.02)
 
         # Reset Encoders
         self.leftMaster.setSelectedSensorPosition(0)
@@ -145,24 +143,23 @@ class Robot(wpilib.TimedRobot):
 
         # NOTE: This is for reading a trajectory exported by PathWeaver
         # Read trajectory from file
-        # path_name = "5 Ball Auto"
-        # trajectory = pf.read_from_pathweaver(path_name, __file__)
+        path_name = "5 Ball Auto"
+        trajectory = pf.read_from_pathweaver(path_name, __file__)
 
         # NOTE: This is for generating a custom trajectory
         # Set up the trajectory
-        points = [pf.Waypoint(0, 0, 0),
-                  pf.Waypoint(1, 1, 0),
-                  pf.Waypoint(2, 0, 0)]
+        # points = [pf.Waypoint(0,0,0),
+        #           pf.Waypoint(1, 1, 0)]
 
-        trajectory = pf.generator.generate_trajectory(
-            points,
-            pf.hermite.pf_fit_hermite_cubic,
-            pf.SAMPLES_FAST,
-            dt=self.DT, #self.getPeriod(),
-            max_velocity=self.MAX_VELOCITY,
-            max_acceleration=self.MAX_ACCELERATION,
-            max_jerk=60
-        )
+        # trajectory = pf.generator.generate_trajectory(
+        #     points,
+        #     pf.hermite.pf_fit_hermite_cubic,
+        #     pf.SAMPLES_FAST,
+        #     dt=self.DT, #self.getPeriod(),
+        #     max_velocity=self.MAX_VELOCITY,
+        #     max_acceleration=self.MAX_ACCELERATION,
+        #     max_jerk=60
+        # )
 
         # Convert the center trajectory to individual right and left side trajectories
         left, right = pf.modifiers.tank(trajectory, self.DRIVE_WIDTH)
@@ -172,13 +169,13 @@ class Robot(wpilib.TimedRobot):
         self.leftTrajectoryFollower.configureEncoder(
             self.leftMaster.getSelectedSensorPosition(self.kPIDLoopIdx), self.ENCODER_COUNTS_PER_REV, self.WHEEL_CIRCUMFERENCE
         )
-        self.leftTrajectoryFollower.configurePIDVA(self.KP, 0.0, self.KD, 1/self.MAX_VELOCITY, 1/self.MAX_ACCELERATION)
+        self.leftTrajectoryFollower.configurePIDSVA(0.0, 0.0, 0.0, self.KS, self.KV, self.KA)
 
         self.rightTrajectoryFollower = pf.followers.EncoderFollower(right)
         self.rightTrajectoryFollower.configureEncoder(
             -self.rightMaster.getSelectedSensorPosition(self.kPIDLoopIdx), self.ENCODER_COUNTS_PER_REV, self.WHEEL_CIRCUMFERENCE
         )
-        self.rightTrajectoryFollower.configurePIDVA(self.KP, 0.0, self.KD, 1/self.MAX_VELOCITY, 1/self.MAX_ACCELERATION)
+        self.rightTrajectoryFollower.configurePIDSVA(0.0, 0.0, 0.0, self.KS, self.KV, self.KA)
 
         start_time = self.timer.getFPGATimestamp()
         self.leftTrajectoryFollower.start(start_time)
@@ -200,19 +197,13 @@ class Robot(wpilib.TimedRobot):
         
         angleDifference = pf.bound_angle(desired_heading - gyro_heading)
         turn = self.ANGLE_CONSTANT * angleDifference
-        if abs(leftSpeed+rightSpeed) < 0.0001:
-            turn = 0
 
         # Calculate target motor speeds (-1 to 1)
         leftSpeed = leftSpeed + turn
         rightSpeed = rightSpeed - turn
 
-        #self.leftMaster.set(ControlMode.PercentOutput, leftSpeed)
-        self.leftMaster.setVoltage(leftSpeed*12*self.SPEED_MULT)
-        #self.rightMaster.set(ControlMode.Voltage, rightSpeed)
-        self.rightMaster.setVoltage(-rightSpeed*12*self.SPEED_MULT)
-
-        print(leftSpeed - rightSpeed)
+        self.leftMaster.setVoltage(ControlMode.PercentOutput, leftSpeed)
+        self.rightMaster.setVoltage(ControlMode.PercentOutput, rightSpeed)
 
         if is_sim:
             self.left_motor_sim.set(-leftSpeed)
@@ -232,8 +223,6 @@ class Robot(wpilib.TimedRobot):
         #self.sd.putNumber("Target Right vel", rightVelocity)
         #self.sd.putNumber("Left vel", self.leftMaster.getSelectedSensorVelocity(self.kPIDLoopIdx))
         #self.sd.putNumber("Target Left vel", leftVelocity)
-        self.sd.putNumber("Gyro", self.gyro.getAngle())
-
 
     def teleopInit(self):
         # Reset Gyro
@@ -267,17 +256,15 @@ class Robot(wpilib.TimedRobot):
             self.maxSpeed = self.velocity
         self.lastVelocity = self.velocity
         
-        # self.sd.putNumber("Max Velocity", self.maxSpeed * self.ENCODER_CONSTANT * 10)
-        # self.sd.putNumber("Velocity", self.velocity * self.ENCODER_CONSTANT * 10)
+        self.sd.putNumber("Max Velocity", self.maxSpeed * self.ENCODER_CONSTANT * 10)
+        self.sd.putNumber("Velocity", self.velocity * self.ENCODER_CONSTANT * 10)
 
-        # self.acceleration = (self.velocity - self.lastVelocity) / self.DT
-        # if self.acceleration > self.maxAccel:
-        #     self.maxAccel = self.acceleration
+        self.acceleration = (self.velocity - self.lastVelocity) / self.DT
+        if self.acceleration > self.maxAccel:
+            self.maxAccel = self.acceleration
 
-        # self.sd.putNumber("Acceleration", self.acceleration)
-        # self.sd.putNumber("Max Acceleration", self.maxAccel * self.ENCODER_CONSTANT * 10)
-
-        self.sd.putNumber("Gyro", self.gyro.getAngle())
+        self.sd.putNumber("Acceleration", self.acceleration)
+        self.sd.putNumber("Max Acceleration", self.maxAccel * self.ENCODER_CONSTANT * 10)
 
 if __name__ == "__main__":
     wpilib.run(Robot)
