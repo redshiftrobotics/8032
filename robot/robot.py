@@ -202,8 +202,8 @@ class Robot(wpilib.TimedRobot):
         leftSpeed = leftSpeed + turn
         rightSpeed = rightSpeed - turn
 
-        self.leftMaster.setVoltage(ControlMode.PercentOutput, leftSpeed)
-        self.rightMaster.setVoltage(ControlMode.PercentOutput, rightSpeed)
+        self.leftMaster.setVoltage(leftSpeed)
+        self.rightMaster.setVoltage(rightSpeed)
 
         if is_sim:
             self.left_motor_sim.set(-leftSpeed)
